@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Topier</title>
-<meta name="description" content="Turn a full set or stream replay into a ready-to-post vertical clip. Free for artists. Runs in your browser, your video never leaves your device.">
+<meta name="description" content="Canva for video, with a pro editor underneath and Topi, an AI assistant, one tap away. Edit in your browser. Free to start, no card needed.">
 <meta name="theme-color" content="#0D0D10">
 <meta name="color-scheme" content="dark">
 <meta name="application-name" content="Topier">
@@ -12,141 +12,106 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Topier">
 <meta name="mobile-web-app-capable" content="yes">
-
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Topier">
 <meta property="og:title" content="Topier">
-<meta property="og:description" content="Turn a full set into a clip you can post. Free for artists. Runs in your browser.">
+<meta property="og:description" content="Edit video in your browser with Topi on hand. Free to start, no card needed.">
 <meta property="og:image" content="/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Topier logo on a dark background">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Topier">
-<meta name="twitter:description" content="Turn a full set into a clip you can post. Free for artists. Runs in your browser.">
+<meta name="twitter:description" content="Edit video in your browser with Topi on hand. Free to start, no card needed.">
 <meta name="twitter:image" content="/og-image.png">
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/home.css">
 </head>
 <body>
-<div id="splash" class="splash" aria-hidden="true">
-  <img src="/assets/brand/topier-logo-stacked.svg" alt="" width="180" height="186">
-  <div class="splash-bar"><i></i></div>
-</div>
+<div id="splash" class="splash" aria-hidden="true"><img src="/assets/brand/topier-logo-stacked.svg" alt="" width="180" height="186"><div class="splash-bar"><i></i></div></div>
 
-<header class="wrap top">
-  <a class="brand" href="/" aria-label="Topier home">
-    <img src="/assets/brand/topier-logo.svg" alt="Topier" width="150" height="40" decoding="async">
-  </a>
-  <h1>Turn a full set into a clip you can post.</h1>
-  <p class="lede">Drop in a set or a stream replay. Topier finds the best moments, puts your name on it, and gives you a vertical video for Reels, TikTok, Shorts and X. Free for artists. Everything runs in your browser, so your video never leaves your device.</p>
+<header class="wrap top home-top">
+  <a class="brand" href="/" aria-label="Topier home"><img src="/assets/brand/topier-logo.svg" alt="Topier" width="150" height="40" decoding="async"></a>
+  <nav class="home-nav"><a href="/clip">Clip a set</a><a href="#templates">Templates</a><button class="link" id="profileBtn" type="button">Your setup</button></nav>
 </header>
 
 <main class="wrap">
-  <noscript><section class="card"><p>Topier needs JavaScript to edit video in your browser. Turn it on and reload.</p></section></noscript>
-  <section class="card unsupported" id="unsupported" hidden>
-    <h2>This browser cannot run the editor</h2>
-    <p id="unsupportedWhy">Topier needs a current version of Chrome, Edge, Firefox or Safari. Update your browser, or open this page in Chrome.</p>
-  </section>
+  <noscript><section class="card"><p>Topier needs JavaScript. Turn it on and reload.</p></section></noscript>
 
-  <section class="card" id="step1">
-    <div class="step" aria-hidden="true">1</div>
-    <h2>Pick your video</h2>
-    <label class="drop" id="drop">
-      <input type="file" id="file" accept="video/*,.mkv,.ts,.mov,.webm">
-      <span id="dropText">Tap to choose a video, or drop it here</span>
-    </label>
-    <video id="src" controls playsinline muted hidden></video>
-  </section>
-
-  <section class="card" id="step2" hidden>
-    <div class="step" aria-hidden="true">2</div>
-    <h2>Find the best moment</h2>
-    <div class="row">
-      <label>Clip length
-        <select id="len">
-          <option value="15">15 seconds</option>
-          <option value="30" selected>30 seconds</option>
-          <option value="60">60 seconds</option>
-        </select>
-      </label>
-      <button id="analyze" class="btn">Find the best moments</button>
+  <section class="hero" id="hero">
+    <div>
+      <h1>Edit video like a pro. Even if you have never edited.</h1>
+      <p class="lede">Canva for video, with a real editor underneath and Topi, your AI assistant, one tap away. Cuts, captions, looks, music, your brand. Made on your phone or laptop, nothing uploaded. Free to start, no card needed.</p>
+      <div class="hero-cta">
+        <button class="btn big" id="startBtn" type="button">Start a video</button>
+        <button class="btn big ghost" id="uploadBtn" type="button">Upload and edit</button>
+      </div>
+      <p class="tiny muted">Instagram, TikTok, YouTube, X, Facebook, WhatsApp Status. Runs in Chrome, Edge, Safari and Firefox.</p>
     </div>
-    <div class="status" id="aStatus" role="status" aria-live="polite"></div>
-    <div id="cands"></div>
-    <p class="hint">Or play the video, stop where you want the clip to start, and <button class="link" id="useHere" type="button">start the clip here</button>.</p>
-    <div class="chosen" id="chosen"></div>
-  </section>
-
-  <section class="card" id="step3" hidden>
-    <div class="step" aria-hidden="true">3</div>
-    <h2>Add your details</h2>
-    <div class="grid">
-      <div class="fields">
-        <label>Artist or act name<input id="name" maxlength="60" placeholder="Your artist name" autocomplete="off"></label>
-        <label>Event and date<input id="event" maxlength="60" placeholder="Live at the Lodge, 3 Oct 2026" autocomplete="off"></label>
-        <label>Link or handle<input id="link" maxlength="40" placeholder="@yourhandle" autocomplete="off"></label>
-        <label>Accent colour<input id="accent" type="color" value="#FF7A1A"></label>
-        <label>Sound sync <output id="syncOut" for="sync">0.00 s</output>
-          <input id="sync" type="range" min="-1.5" max="1.5" step="0.05" value="0">
-          <small>Sound comes after the picture? Slide right. Sound comes first? Slide left.</small>
-        </label>
-        <label>Quality
-          <select id="quality">
-            <option value="720">Fast (720 x 1280)</option>
-            <option value="1080">Full HD (1080 x 1920), slower</option>
-          </select>
-        </label>
-      </div>
-      <div class="preview">
-        <canvas id="prev" width="360" height="640" aria-label="Preview of the clip layout"></canvas>
-        <small>Preview of the first frame</small>
-      </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="phone"><div class="phone-screen"><div class="ph-title">YOUR NAME</div><div class="ph-cap"><span class="on">live</span> <span>at</span> <span>the</span> <span>lodge</span></div><div class="ph-pill">@yourhandle</div></div></div>
+      <div class="topi-card"><img src="/assets/brand/topier-mark.svg" alt="" width="20" height="20"><div><strong>Topi</strong><br><span id="topiLine">Your first 3 seconds are quiet. Start on the chorus instead?</span></div><button class="btn sm">Do it</button></div>
     </div>
   </section>
 
-  <section class="card" id="step4" hidden>
-    <div class="step" aria-hidden="true">4</div>
-    <h2>Make your clip</h2>
-    <button id="render" class="btn big">Make my clip</button>
-    <div class="status" id="rStatus" role="status" aria-live="polite"></div>
-    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="rBarBox"><div id="rBar"></div></div>
-    <div id="out" hidden>
-      <video id="outVid" controls playsinline></video>
-      <a id="dl" class="btn big" download>Download clip</a>
-      <button id="share" class="btn big ghost" type="button" hidden>Share</button>
-      <button id="again" class="link" type="button">Make another from the same video</button>
+  <section class="card quiet" id="newSection">
+    <h2>New video</h2>
+    <div class="sizes" id="sizes"></div>
+  </section>
+
+  <section class="card quiet" id="recentSection" hidden>
+    <div class="row-head"><h2>Your projects</h2><span class="muted tiny" id="storageNote"></span></div>
+    <div class="projects" id="projects"></div>
+  </section>
+
+  <section class="card quiet" id="templates">
+    <h2>Templates</h2>
+    <p class="lede tiny">Text already placed. Drop in your clips and go.</p>
+    <div class="templates" id="tplGrid"></div>
+  </section>
+
+  <section class="card quiet">
+    <h2>What Topier does</h2>
+    <div class="features">
+      <div><strong>Finds the moment.</strong> Drop in a full set or a stream replay. Topier listens and cuts to the crowd going up.</div>
+      <div><strong>Captions, word by word.</strong> Written on your device. Karaoke style, three looks, any font.</div>
+      <div><strong>One tap looks.</strong> Golden hour, film, teal and orange, noir. The same pixels at export.</div>
+      <div><strong>Music that ducks.</strong> Beats made on your device or your own track. Dips under speech by itself.</div>
+      <div><strong>Three editors in one.</strong> Simple cards, a real timeline, or Pro with tracks and keyframes. Switch any time.</div>
+      <div><strong>Topi sees your project.</strong> Not a chat box in a corner. One suggestion at a time, applied with a tap.</div>
+      <div><strong>Your brand, once.</strong> Logo, colours, font, handle. Outro card in one tap.</div>
+      <div><strong>Private by design.</strong> Projects live in your browser. Nothing is uploaded to edit or export.</div>
     </div>
   </section>
 
   <section class="card quiet">
-    <h2>How it works</h2>
-    <ul class="facts">
-      <li><strong>Private.</strong> The video is read on your device and never uploaded. Close the tab and nothing is left behind.</li>
-      <li><strong>Free for artists.</strong> No account, no card, no limit on how many clips you make.</li>
-      <li><strong>First run downloads the editor</strong>, about 31 MB, once. After that it opens instantly, even offline.</li>
-      <li><strong>Long sets are fine.</strong> A full two hour replay works. Listening to it takes a few minutes on a phone.</li>
-    </ul>
+    <h2>Plans</h2>
+    <div class="plans">
+      <div class="plan"><h3>Free</h3><div class="price">$0</div><ul><li>720p and 1080p export, small Topier mark</li><li>All editing tools, captions, looks, music</li><li>Topi Guide, 15 messages a day</li><li>3 projects on this device</li></ul></div>
+      <div class="plan hot"><h3>Creator</h3><div class="price">$8<span>/month</span></div><ul><li>No watermark</li><li>Topi Co-pilot, applies changes for you</li><li>Brand kit, all templates</li><li>Cloud save when accounts land</li></ul><p class="tiny muted">7 day trial is on for everyone during early access.</p></div>
+      <div class="plan"><h3>Pro</h3><div class="price">$18<span>/month</span></div><ul><li>4K export, custom bitrate</li><li>Topi Autopilot, edits from a prompt</li><li>3 brand kits, premium looks</li></ul></div>
+    </div>
+    <p class="tiny muted">Early access: everything is open while we build. Kwacha pricing and mobile money for Zambia at launch.</p>
   </section>
 </main>
 
 <footer class="wrap foot">
   <img class="foot-mark" src="/assets/brand/topier-mark-white.svg" alt="" width="22" height="22" aria-hidden="true">
-  <p>Topier, the video editor with Topi on hand. Free for artists. <button class="link" id="install" type="button" hidden>Install the app</button></p>
-  <p class="tiny">Questions or a clip that did not work? <a href="mailto:getitdonerapid@gmail.com">getitdonerapid@gmail.com</a></p>
+  <p>Topier, the video editor with Topi on hand. <button class="link" id="install" type="button" hidden>Install the app</button></p>
+  <p class="tiny">Topi is AI and can be wrong. Nothing is applied without your tap. You own what you make. <a href="mailto:getitdonerapid@gmail.com">getitdonerapid@gmail.com</a></p>
 </footer>
 
-<script type="module" src="/app.js"></script>
+<div class="sheet-backdrop" id="backdrop" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden></div>
+<input type="file" id="fileInput" multiple accept="video/*,image/*,audio/*,.mkv,.mov,.m4a" hidden>
+<script type="module" src="/src/home.js"></script>
 </body>
 </html>

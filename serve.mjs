@@ -17,11 +17,14 @@ const types = {
 createServer(async (req, res) => {
   let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   if (path.endsWith('/')) path += 'index.html';
+  if (path.startsWith('/api/')) { res.writeHead(503, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ error: 'Topi runs on Vercel functions. Local fallback is in use.' })); }
   const file = normalize(join(root, path));
   if (!file.startsWith(normalize(root))) { res.writeHead(403); return res.end(); }
   try {
-    const s = await stat(file);
-    const target = s.isDirectory() ? join(file, 'index.html') : file;
+    let target0 = file;
+    try { await stat(target0); } catch { target0 = file + '.html'; }
+    const s = await stat(target0);
+    const target = s.isDirectory() ? join(target0, 'index.html') : target0;
     const data = await readFile(target);
     res.writeHead(200, {
       'content-type': types[extname(target)] || 'application/octet-stream',

@@ -1,5 +1,8 @@
 node_modules/
-_test/
+_test/out/
+_test/*.mp4
+_test/*.png
+_test/*.log
 brand/src/_*
 .vercel/
 .claude/
