@@ -1,0 +1,15 @@
+{
+  "name": "topier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Topier: turn a full set into a ready-to-post vertical clip, in the browser.",
+  "type": "module",
+  "scripts": {
+    "brand": "node brand/make.mjs",
+    "start": "node serve.mjs"
+  },
+  "devDependencies": {
+    "opentype.js": "^1.3.4",
+    "sharp": "^0.33.5"
+  }
+}
