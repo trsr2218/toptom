@@ -15,6 +15,8 @@ import * as topiUI from './ui/topi.js';
 import * as exportUI from './ui/export.js';
 import * as simple from './ui/simple.js';
 import { hydrate, icon } from './icons.js';
+import * as auth from './auth.js';
+import * as account from './ui/account.js';
 
 const $ = (id) => document.getElementById(id);
 const listeners = new Map();
@@ -223,7 +225,7 @@ let saveTimer = 0;
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(app.save = save, 700); }
 async function save() {
   if (!app._dirty) return;
-  try { await projects.put(app.project); app._dirty = false; $('saved').textContent = 'Saved'; } catch (e) { console.error(e); $('saved').textContent = 'Not saved'; }
+  try { await projects.put(app.project); app._dirty = false; $('saved').textContent = auth.currentUser() ? 'Saved to your account' : 'Saved'; auth.pushProject(app.project); } catch (e) { console.error(e); $('saved').textContent = 'Not saved'; }
 }
 
 // ---------- boot ----------
@@ -257,6 +259,8 @@ async function boot() {
   preview.mount(app); timeline.mount(app); inspector.mount(app); panels.mount(app); topiUI.mount(app); exportUI.mount(app); simple.mount(app);
   app.setMode(p.mode || app.profile.level || 'standard');
   wireChrome();
+  account.mount($('accountBtn'), { sheet: (html) => app.sheet(html), closeSheet: app.closeSheet, toast: app.toast, compact: true, onChange: (u, plan) => { const paid = plan && plan !== 'free'; if (paid && app.project.watermark && !app.project._wmChosen) { app.project.watermark = false; app.touch(true); } app.emit('select', app.selection); } });
+  document.addEventListener('topier-open-setup', () => { location.href = '/#setup'; });
   const fonts = new Set(p.tracks.flatMap((t) => t.clips.map((c) => c.font).filter(Boolean))); fonts.add('Inter');
   await Promise.all([...fonts].map(ensureFont));
   // files chosen on the home page

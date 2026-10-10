@@ -6,3 +6,5 @@ _test/*.log
 brand/src/_*
 .vercel/
 .claude/
+.env*
+config.local.js

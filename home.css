@@ -112,3 +112,5 @@ body { background: #fff; }
   .topi-card { position: static; margin: 22px auto 0; width: auto; }
   .home-nav { gap: 2px; font-size: 13px; } .home-nav a, .home-nav button { padding: 6px 8px; }
 }
+.home-nav .avatar { margin-left: 4px; }
+.home-nav .avatar { margin-left: 4px; }

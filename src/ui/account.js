@@ -1,0 +1,101 @@
+// The account button and sheet, shared by the home page and the editor.
+import * as auth from '../auth.js';
+import { icon } from '../icons.js';
+
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/**
+ * mount(button, { sheet, closeSheet, toast, compact })
+ * button: the element to render the sign-in button or avatar into.
+ * sheet(html) must return the sheet element; closeSheet() hides it.
+ */
+export function mount(button, { sheet, closeSheet, toast = () => {}, compact = false, onChange = () => {} }) {
+  const render = (user, plan) => {
+    if (!auth.available()) { button.hidden = true; return; }
+    button.hidden = false;
+    if (user) {
+      button.innerHTML = user.avatar ? `<img src="${esc(user.avatar)}" alt="" referrerpolicy="no-referrer">` : `<span>${esc(auth.initial(user))}</span>`;
+      button.className = 'avatar'; button.title = user.email;
+      button.onclick = () => accountSheet(user, plan);
+    } else {
+      button.innerHTML = compact ? icon('lock', 16) : 'Sign in';
+      button.className = compact ? 'ib' : 'pill'; button.title = 'Sign in';
+      button.onclick = () => signInSheet();
+    }
+    onChange(user, plan);
+  };
+  auth.onChange(render);
+  auth.init().then(() => render(auth.currentUser(), auth.currentPlan()));
+
+  function signInSheet(mode = 'link') {
+    const s = sheet(`<h3>Sign in to Topier</h3><p class="muted">Keep your projects and your setup on every device. Free to start, no card needed.</p>
+      <button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
+      <div class="or"><span>or</span></div>
+      <form id="auForm">
+        <label class="f">Email<input type="email" id="auEmail" required autocomplete="email" placeholder="you@example.com"></label>
+        ${mode === 'password' ? `<label class="f">Password<input type="password" id="auPass" required minlength="6" autocomplete="current-password" placeholder="At least 6 characters"></label>` : ''}
+        <button class="btn big block" id="auGo" type="submit">${mode === 'password' ? 'Sign in' : 'Email me a sign-in link'}</button>
+      </form>
+      <p class="tiny muted" style="margin-top:10px">${mode === 'password' ? '<button class="link" id="auLink" type="button">Use a sign-in link instead</button> · <button class="link" id="auSignup" type="button">Create an account</button>' : 'No password to remember. <button class="link" id="auPwd" type="button">Use a password instead</button>'}</p>
+      <p class="tiny muted" id="auMsg" aria-live="polite"></p>
+      <p class="tiny muted">By continuing you accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>`);
+    const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
+    s.querySelector('#auGoogle').onclick = async () => { try { await auth.signInGoogle(); } catch (e) { msg(e.message, true); } };
+    s.querySelector('#auForm').onsubmit = async (e) => {
+      e.preventDefault(); const email = s.querySelector('#auEmail').value.trim(); const go = s.querySelector('#auGo'); go.disabled = true;
+      try {
+        if (mode === 'password') { await auth.signInPassword(email, s.querySelector('#auPass').value); closeSheet(); toast('Signed in'); }
+        else { await auth.signInEmail(email); msg(`Check ${email} for your sign-in link. It works on this device.`); }
+      } catch (err) { msg(err.message, true); } finally { go.disabled = false; }
+    };
+    const pwd = s.querySelector('#auPwd'); if (pwd) pwd.onclick = () => signInSheet('password');
+    const link = s.querySelector('#auLink'); if (link) link.onclick = () => signInSheet('link');
+    const su = s.querySelector('#auSignup'); if (su) su.onclick = () => signUpSheet();
+  }
+
+  function signUpSheet() {
+    const s = sheet(`<h3>Create your account</h3><p class="muted">Or <button class="link" id="auBack" type="button">sign in</button> if you already have one.</p>
+      <button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
+      <div class="or"><span>or</span></div>
+      <form id="auForm">
+        <label class="f">Name<input id="auName" maxlength="60" placeholder="Your name or act" autocomplete="name"></label>
+        <label class="f">Email<input type="email" id="auEmail" required autocomplete="email"></label>
+        <label class="f">Password<input type="password" id="auPass" required minlength="6" autocomplete="new-password" placeholder="At least 6 characters"></label>
+        <button class="btn big block" id="auGo" type="submit">Create account</button>
+      </form>
+      <p class="tiny muted" id="auMsg" aria-live="polite"></p>
+      <p class="tiny muted">By continuing you accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>. You must be 13 or older, 16 in the EU.</p>`);
+    const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
+    s.querySelector('#auBack').onclick = () => signInSheet('password');
+    s.querySelector('#auGoogle').onclick = async () => { try { await auth.signInGoogle(); } catch (e) { msg(e.message, true); } };
+    s.querySelector('#auForm').onsubmit = async (e) => {
+      e.preventDefault(); const go = s.querySelector('#auGo'); go.disabled = true;
+      try {
+        const done = await auth.signUpPassword(s.querySelector('#auEmail').value.trim(), s.querySelector('#auPass').value, s.querySelector('#auName').value.trim());
+        if (done) { closeSheet(); toast('Welcome to Topier'); } else msg('Almost there. Check your inbox and tap the link to confirm your email.');
+      } catch (err) { msg(err.message, true); } finally { go.disabled = false; }
+    };
+  }
+
+  function accountSheet(user, plan) {
+    const s = sheet(`<h3>Your account</h3>
+      <div class="acct"><div class="avatar big">${user.avatar ? `<img src="${esc(user.avatar)}" alt="" referrerpolicy="no-referrer">` : esc(auth.initial(user))}</div><div><strong>${esc(user.name || user.email)}</strong><br><span class="muted">${esc(user.email)}</span><br><span class="chip on">${auth.planName(plan)} plan</span></div></div>
+      <ul class="facts" style="margin:14px 0">
+        <li><strong>Projects</strong> save to the cloud as you edit. Media stays on the device it was added on.</li>
+        <li><strong>Topi</strong> ${plan === 'free' ? 'guides you, 15 messages a day.' : 'guides and applies changes for you.'}</li>
+        <li><strong>Exports</strong> ${plan === 'free' ? 'carry a small Topier mark.' : 'have no watermark.'}</li>
+      </ul>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="/">Your projects</a><button class="btn" id="auSetup">Your setup</button><button class="btn ghost" id="auOut">Sign out</button></div>
+      <p class="tiny muted" style="margin-top:14px"><button class="link" id="auDelete" type="button" style="color:var(--bad)">Delete my account and data</button></p>`);
+    s.querySelector('#auOut').onclick = async () => { await auth.signOut(); closeSheet(); toast('Signed out'); };
+    s.querySelector('#auSetup').onclick = () => { closeSheet(); document.dispatchEvent(new CustomEvent('topier-open-setup')); };
+    s.querySelector('#auDelete').onclick = async () => {
+      if (!confirm('Delete your account and every project saved to it? Projects on this device stay here. This cannot be undone.')) return;
+      try { await auth.deleteAccount(); closeSheet(); toast('Account deleted'); } catch (e) { toast(e.message, true); }
+    };
+  }
+}
+
+function googleMark() {
+  return '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.7 24c0-1.6.3-3.1.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
+}

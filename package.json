@@ -9,6 +9,7 @@
     "start": "node serve.mjs"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.47.10",
     "mp4-muxer": "^5.1.5",
     "mp4box": "^0.5.2",
     "opentype.js": "^1.3.4",

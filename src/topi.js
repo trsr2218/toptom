@@ -8,7 +8,7 @@ export const LIMITS = { free: { guide: 15, copilot: 0 }, creator: { guide: 100, 
 const dayKey = () => 'topi-' + new Date().toISOString().slice(0, 10);
 export function usedToday() { try { return JSON.parse(localStorage.getItem(dayKey()) || '{"guide":0,"copilot":0}'); } catch { return { guide: 0, copilot: 0 }; } }
 function bump(kind) { const u = usedToday(); u[kind] = (u[kind] || 0) + 1; try { localStorage.setItem(dayKey(), JSON.stringify(u)); } catch {} return u; }
-export function plan() { try { return localStorage.getItem('topier-plan') || 'free'; } catch { return 'free'; } }
+export function plan() { try { const p = localStorage.getItem('topier-plan'); if (p) return p; const ts = Number(localStorage.getItem('topier-trial') || 0); return ts && Date.now() - ts < 7 * 864e5 ? 'pro' : 'free'; } catch { return 'free'; } }
 export function leftToday(kind) { return Math.max(0, (LIMITS[plan()] || LIMITS.free)[kind] - (usedToday()[kind] || 0)); }
 
 // ---------- local guide: rules over the project ----------
@@ -51,8 +51,9 @@ export async function ask(message, project, history, profile = {}) {
   if (leftToday('guide') <= 0) return { reply: 'Topi is resting for today. Your Guide messages reset at midnight. Upgrade for more.', actions: [], limited: true };
   bump('guide');
   try {
+    let tok = null; try { const a = await import('./auth.js'); tok = await a.token(); } catch {}
     const res = await fetch('/api/topi', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
+      method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { authorization: 'Bearer ' + tok } : {}) },
       body: JSON.stringify({ message, project: summarize(project), history: history.slice(-8), profile }),
     });
     if (res.ok) { const j = await res.json(); if (j && j.reply) return { reply: j.reply, actions: j.actions || [], remote: true }; }

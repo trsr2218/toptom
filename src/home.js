@@ -4,6 +4,8 @@ import { projects, media as mediaStore, settings, usage, persist } from './store
 import { importFile } from './media.js';
 import { TEMPLATES, ONBOARD } from './presets.js';
 import { hydrate } from './icons.js';
+import * as auth from './auth.js';
+import * as account from './ui/account.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -12,6 +14,8 @@ let profile = {};
 async function boot() {
   hydrate();
   profile = (await settings.get('profile', null)) || null;
+  account.mount($('accountBtn'), { sheet, closeSheet, toast: (m) => { const t = $('storageNote'); }, onChange: async (u) => { if (u) { profile = (await settings.get('profile', null)) || profile; renderTemplates(); await mergeCloud(); await renderProjects(); } } });
+  document.addEventListener('topier-open-setup', () => onboarding(() => location.reload()));
   renderTemplates(); await renderProjects();
   $('startBtn').onclick = () => profile ? go(newUrl(profile.size || 'reels')) : onboarding(() => go(newUrl(profile.size || 'reels')));
   $('uploadBtn').onclick = () => $('fileInput').click();
@@ -61,8 +65,14 @@ async function renderProjects() {
   }).join('');
   hydrate($('projects'));
   $('projects').querySelectorAll('.proj').forEach((el) => { el.onclick = (e) => { if (e.target.closest('button')) return; go(`/editor?id=${el.dataset.id}`); }; el.onkeydown = (e) => { if (e.key === 'Enter') go(`/editor?id=${el.dataset.id}`); }; });
-  $('projects').querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => { if (confirm('Delete this project?')) { await projects.del(b.dataset.del); renderProjects(); } });
+  $('projects').querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => { if (confirm('Delete this project?')) { await projects.del(b.dataset.del); auth.deleteCloudProject(b.dataset.del); renderProjects(); } });
   $('projects').querySelectorAll('[data-dup]').forEach((b) => b.onclick = async () => { const p = await projects.get(b.dataset.dup); p.id = Math.random().toString(36).slice(2, 10); p.name += ' copy'; p.created = Date.now(); await projects.put(p); renderProjects(); });
+}
+// Projects saved to the account that this device has not seen yet come down; newer local edits stay.
+async function mergeCloud() {
+  const cloud = await auth.pullProjects(); if (!cloud.length) return;
+  const local = new Map((await projects.list()).map((p) => [p.id, p]));
+  for (const c of cloud) { const l = local.get(c.id); if (!l || (c.updated || 0) > (l.updated || 0) + 1000) { const { updated, ...rest } = c; rest.updated = updated; rest.history = []; await projects.put(rest); } }
 }
 const ago = (t) => { const d = (Date.now() - t) / 1000; return d < 60 ? 'just now' : d < 3600 ? `${Math.floor(d / 60)} min ago` : d < 86400 ? `${Math.floor(d / 3600)} h ago` : `${Math.floor(d / 86400)} d ago`; };
 
@@ -98,7 +108,7 @@ function onboarding(done) {
   async function finish() {
     const post = ONBOARD.posts.find((x) => p.posts.includes(x.id));
     p.size = post ? post.size : 'reels'; p.acceptedAt = p.acceptedAt || Date.now();
-    profile = p; await settings.set('profile', p); closeSheet();
+    profile = p; await settings.set('profile', p); auth.saveProfile(p); closeSheet();
     renderTemplates();
     if (done) done();
   }
