@@ -1,0 +1,8 @@
+node_modules
+_test
+brand/src
+supabase
+.env*
+.claude
+*.md
+!README.md
