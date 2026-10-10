@@ -19,6 +19,8 @@ export function mount(a) {
 function toggle(force) {
   const open = force == null ? $('topi').hidden : force;
   $('topi').hidden = !open; $('topiBtn').setAttribute('aria-pressed', String(open)); $('topiDot').hidden = true;
+  document.body.classList.toggle('topi-open', open);
+  if (open && innerWidth <= 900) { $('panel').classList.remove('open'); $('inspector').classList.remove('open'); }
   if (open) { $('topiLeft').textContent = `${leftToday('guide')} today`; if (!history.length) tip(true); $('topiInput').focus(); }
 }
 

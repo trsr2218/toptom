@@ -2,6 +2,7 @@
 import { projectDuration, clipEnd, tidyTrack, ripple, trackOf, TRACK_KINDS } from '../model.js';
 import { beats } from '../media.js';
 import { tc } from '../editor.js';
+import { icon } from '../icons.js';
 
 let app, pps = 40, snaps = [];
 const $ = (id) => document.getElementById(id);
@@ -37,24 +38,38 @@ function render() {
   const d = Math.max(projectDuration(p) + 10, 20), width = d * pps;
   const labels = $('tlLabels'), tl = $('tlTracks');
   labels.innerHTML = ''; tl.querySelectorAll('.tl-track').forEach((x) => x.remove());
-  tl.style.width = `${width}px`; tl.style.height = `${tracks.length * 46}px`;
+  tl.style.width = `${width}px`; tl.style.height = tracks.reduce((h, tr) => h + 46 + (laneMap(tr).count - 1) * 40, 0) + 'px';
   snaps = [0];
   for (const t of tracks) {
-    const lab = document.createElement('div'); lab.className = 'tl-label';
+    const lanes = laneMap(t); const rowH = 46 + (lanes.count - 1) * 40;
+    const lab = document.createElement('div'); lab.className = 'tl-label'; lab.style.height = rowH + 'px';
     lab.innerHTML = `<span class="name">${t.name || TRACK_KINDS[t.kind].name}</span>
-      ${t.kind !== 'text' ? `<button class="ib ${t.muted ? 'on' : ''}" data-a="mute" title="Mute">${t.muted ? '🔇' : '🔊'}</button>` : ''}
-      ${t.kind === 'audio' ? `<button class="ib ${t.duck ? 'on' : ''}" data-a="duck" title="Dip under speech">▾</button>` : ''}
-      <button class="ib ${t.hidden ? 'on' : ''}" data-a="hide" title="Hide">${t.hidden ? '◌' : '◉'}</button>`;
+      ${t.kind !== 'text' ? `<button class="ib ${t.muted ? 'on' : ''}" data-a="mute" title="${t.muted ? 'Unmute' : 'Mute'}">${icon('volume', 14)}</button>` : ''}
+      ${t.kind === 'audio' ? `<button class="ib ${t.duck ? 'on' : ''}" data-a="duck" title="Dip under speech">${icon('speed', 14)}</button>` : ''}
+      <button class="ib ${t.hidden ? 'on' : ''}" data-a="hide" title="${t.hidden ? 'Show' : 'Hide'}">${icon('layers', 14)}</button>`;
     lab.querySelectorAll('button').forEach((b) => b.onclick = () => app.set('Track', () => { if (b.dataset.a === 'mute') t.muted = !t.muted; if (b.dataset.a === 'duck') t.duck = !t.duck; if (b.dataset.a === 'hide') t.hidden = !t.hidden; }));
     labels.appendChild(lab);
-    const row = document.createElement('div'); row.className = 'tl-track'; row.dataset.track = t.id; row.style.backgroundSize = `${pps}px 100%`;
+    const row = document.createElement('div'); row.className = 'tl-track'; row.dataset.track = t.id; row.style.backgroundSize = `${pps}px 100%`; row.style.height = rowH + 'px';
     tl.appendChild(row);
-    for (const c of t.clips) { row.appendChild(clipEl(c, t)); snaps.push(c.start, clipEnd(c)); }
+    for (const c of t.clips) { const el = clipEl(c, t); el.style.top = (5 + (lanes.of.get(c.id) || 0) * 40) + 'px'; row.appendChild(el); snaps.push(c.start, clipEnd(c)); }
   }
   // beat markers from the music track
   const mu = trackOf(p, 'audio');
   if (mu && mu.clips[0]) { const m = app.getMedia(mu.clips[0].mediaId); if (m && m.peaks) { const c = mu.clips[0]; for (const b of beats(m.peaks)) { const t = c.start + (b - c.in) / c.speed; if (t < c.start || t > clipEnd(c)) continue; const el = document.createElement('div'); el.className = 'beat'; el.style.left = `${t * pps}px`; tl.appendChild(el); snaps.push(t); } } }
   drawRuler(); movePlayhead(app.time); paintSel(app.selection);
+}
+
+// Overlapping clips on text and overlay tracks get their own lane instead of hiding each other.
+function laneMap(track) {
+  const of = new Map(); let count = 1;
+  if (track.kind !== 'text' && track.kind !== 'overlay') return { of, count };
+  const ends = [];
+  for (const c of [...track.clips].sort((a, b) => a.start - b.start)) {
+    let lane = ends.findIndex((e) => e <= c.start + 0.001);
+    if (lane < 0) { lane = ends.length; ends.push(0); }
+    ends[lane] = clipEnd(c); of.set(c.id, lane); count = Math.max(count, lane + 1);
+  }
+  return { of, count };
 }
 
 function clipEl(c, t) {

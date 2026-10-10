@@ -52,13 +52,15 @@ export function newMediaClip(media, start = 0) {
   return c;
 }
 
-export function newTextClip(preset, start = 0, text = 'Your text') {
+export function newTextClip(preset, start = 0, text = null) {
+  const { id: _id, name: _name, text: presetText, ...style } = preset || {};
+  const t = text || presetText || 'Your text';
   return {
-    ...BASE(), type: 'text', name: text, start, duration: 4, text,
+    ...BASE(), type: 'text', start, duration: 4,
     font: 'Inter', weight: 800, size: 0.08, color: '#ffffff', bg: 'transparent', pad: 0.4,
     align: 'center', letter: 0, line: 1.1, shadow: true, stroke: '', radius: 0.5, maxWidth: 0.9,
     anim: 'pop', transIn: { type: 'none', dur: 0.3 }, transOut: { type: 'none', dur: 0.3 },
-    ...(preset || {}),
+    ...style, text: t, name: t,
   };
 }
 

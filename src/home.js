@@ -1,18 +1,21 @@
-// Home: onboarding, new video, your projects, templates.
+// Home: onboarding, quick starts, your projects, templates.
 import { SIZES, newProject } from './model.js';
 import { projects, media as mediaStore, settings, usage, persist } from './store.js';
 import { importFile } from './media.js';
-import { TEMPLATES, ONBOARD, fromTemplate } from './presets.js';
+import { TEMPLATES, ONBOARD } from './presets.js';
+import { hydrate } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let profile = {};
 
 async function boot() {
+  hydrate();
   profile = (await settings.get('profile', null)) || null;
-  renderSizes(); renderTemplates(); await renderProjects();
+  renderTemplates(); await renderProjects();
   $('startBtn').onclick = () => profile ? go(newUrl(profile.size || 'reels')) : onboarding(() => go(newUrl(profile.size || 'reels')));
   $('uploadBtn').onclick = () => $('fileInput').click();
+  $('quick').querySelectorAll('[data-size]').forEach((b) => b.onclick = () => go(newUrl(b.dataset.size)));
   $('fileInput').onchange = async (e) => {
     const files = [...e.target.files]; if (!files.length) return;
     const s = sheet(`<h3>Adding your files</h3><p class="muted" id="upMsg">Reading...</p>`);
@@ -23,7 +26,6 @@ async function boot() {
     const size = first && first.w && first.h ? (first.w > first.h ? 'landscape' : first.w === first.h ? 'square' : 'reels') : (profile && profile.size) || 'reels';
     const p = newProject({ size, name: first ? first.name : 'Untitled video' });
     await projects.put(p);
-    await settings.set('pendingAdd', { projectId: p.id, ids, at: Date.now() });
     go(`/editor?id=${p.id}&add=${ids.join(',')}`);
   };
   $('profileBtn').onclick = () => onboarding(() => location.reload());
@@ -39,15 +41,10 @@ async function boot() {
 const go = (u) => { location.href = u; };
 const newUrl = (size) => `/editor?size=${size}${profile && profile.level ? `&mode=${profile.level}` : ''}`;
 
-function renderSizes() {
-  $('sizes').innerHTML = Object.values(SIZES).map((s) => { const r = s.w / s.h; const w = r >= 1 ? 48 : 48 * r, h = r >= 1 ? 48 / r : 48; return `<button class="size" data-size="${s.id}"><span class="box" style="width:${w}px;height:${h}px"></span><strong>${s.label}</strong><small>${s.name}</small></button>`; }).join('');
-  $('sizes').querySelectorAll('button').forEach((b) => b.onclick = () => go(newUrl(b.dataset.size)));
-}
-
 function renderTemplates() {
   const makes = (profile && profile.makes) || [];
   const list = [...TEMPLATES].sort((a, b) => (b.tags.some((t) => makes.includes(t)) ? 1 : 0) - (a.tags.some((t) => makes.includes(t)) ? 1 : 0));
-  $('tplGrid').innerHTML = list.map((t) => `<button class="tpl" data-tpl="${t.id}"><div class="art" style="aspect-ratio:${SIZES[t.size].w}/${SIZES[t.size].h};height:auto;max-height:110px">${esc(t.name.toUpperCase())}</div><strong>${esc(t.name)}</strong><small>${esc(t.desc)} ${SIZES[t.size].label}</small></button>`).join('');
+  $('tplGrid').innerHTML = list.map((t, i) => `<button class="tpl" data-tpl="${t.id}"><div class="art w${i % 8}">${esc(t.name.toUpperCase())}</div><strong>${esc(t.name)}</strong><small>${esc(t.desc)} ${SIZES[t.size].label}</small></button>`).join('');
   $('tplGrid').querySelectorAll('button').forEach((b) => b.onclick = () => go(`/editor?template=${b.dataset.tpl}${profile && profile.level ? `&mode=${profile.level}` : ''}`));
 }
 
@@ -60,8 +57,9 @@ async function renderProjects() {
   $('projects').innerHTML = list.map((p) => {
     const first = p.tracks.flatMap((t) => t.clips).map((c) => allMedia.get(c.mediaId)).find((m) => m && m.thumb);
     const dur = Math.max(0, ...p.tracks.flatMap((t) => t.clips.map((c) => c.start + c.duration)));
-    return `<div class="proj" data-id="${p.id}" tabindex="0"><div class="th" style="${first ? `background-image:url(${first.thumb})` : ''}">${first ? '' : '▣'}</div><div class="meta"><strong>${esc(p.name)}</strong><small>${p.w}×${p.h} · ${Math.round(dur)} s · ${ago(p.updated)}</small></div><div class="menu"><button data-dup="${p.id}">Copy</button><button data-del="${p.id}">Delete</button></div></div>`;
+    return `<div class="proj" data-id="${p.id}" tabindex="0"><div class="th" style="${first ? `background-image:url(${first.thumb})` : ''}">${first ? '' : '<i data-icon="video" data-size="28"></i>'}</div><div class="meta"><strong>${esc(p.name)}</strong><small>${p.w}×${p.h} · ${Math.round(dur)} s · ${ago(p.updated)}</small></div><div class="menu"><button data-dup="${p.id}">Copy</button><button data-del="${p.id}">Delete</button></div></div>`;
   }).join('');
+  hydrate($('projects'));
   $('projects').querySelectorAll('.proj').forEach((el) => { el.onclick = (e) => { if (e.target.closest('button')) return; go(`/editor?id=${el.dataset.id}`); }; el.onkeydown = (e) => { if (e.key === 'Enter') go(`/editor?id=${el.dataset.id}`); }; });
   $('projects').querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => { if (confirm('Delete this project?')) { await projects.del(b.dataset.del); renderProjects(); } });
   $('projects').querySelectorAll('[data-dup]').forEach((b) => b.onclick = async () => { const p = await projects.get(b.dataset.dup); p.id = Math.random().toString(36).slice(2, 10); p.name += ' copy'; p.created = Date.now(); await projects.put(p); renderProjects(); });
@@ -76,15 +74,15 @@ function onboarding(done) {
   const p = { name: '', makes: [], posts: [], level: 'standard', ...(profile || {}) };
   let step = 0;
   const steps = [
-    () => `<h3>What should Topi call you?</h3><p class="muted">Topi is the assistant inside Topier.</p><input type="text" id="obName" value="${esc(p.name)}" placeholder="Your name or act" maxlength="40" style="margin:10px 0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">`,
+    () => `<h3>What should Topi call you?</h3><p class="muted">Topi is the assistant inside Topier.</p><input type="text" id="obName" value="${esc(p.name)}" placeholder="Your name or act" maxlength="40" style="margin:14px 0 4px">`,
     () => `<h3>What do you make?</h3><p class="muted">Pick everything that fits. Templates and tips follow it.</p><div class="ob-grid">${ONBOARD.makes.map((m) => `<button data-m="${m.id}" class="${p.makes.includes(m.id) ? 'on' : ''}"><span class="em">${m.emoji}</span>${m.name}</button>`).join('')}</div>`,
     () => `<h3>Where do you post?</h3><p class="muted">Sets the default size and export presets.</p><div class="ob-grid">${ONBOARD.posts.map((m) => `<button data-p="${m.id}" class="${p.posts.includes(m.id) ? 'on' : ''}">${m.name}<small>${SIZES[m.size].label}</small></button>`).join('')}</div>`,
     () => `<h3>How do you like to edit?</h3><div class="ob-grid" style="grid-template-columns:1fr">${ONBOARD.levels.map((l) => `<button data-l="${l.id}" class="${p.level === l.id ? 'on' : ''}">${l.name}<small>${l.desc}</small></button>`).join('')}</div>
-      <label class="check"><input type="checkbox" id="obTerms"> I am 13 or older (16 in the EU) and I accept the <a href="/terms" style="color:var(--accent)">Terms</a> and <a href="/privacy" style="color:var(--accent)">Privacy Policy</a>. Topi is AI and can be wrong; nothing is applied without my tap.</label>
+      <label class="check"><input type="checkbox" id="obTerms"> I am 13 or older (16 in the EU) and I accept the <a href="/terms" style="color:var(--accent-2)">Terms</a> and <a href="/privacy" style="color:var(--accent-2)">Privacy Policy</a>. Topi is AI and can be wrong; nothing is applied without my tap.</label>
       <label class="check"><input type="checkbox" id="obMail"> Email me product news. Optional.</label>`,
   ];
   const render = () => {
-    const s = sheet(`${steps[step]()}<div class="acts">${step > 0 ? '<button class="btn ghost" id="obBack">Back</button>' : ''}${step >= 2 ? '<button class="link" id="obSkip">Skip</button>' : ''}<button class="btn" id="obNext">${step === steps.length - 1 ? 'Start editing' : 'Next'}</button></div>`);
+    const s = sheet(`${steps[step]()}<div class="acts">${step > 0 ? '<button class="btn ghost" id="obBack">Back</button>' : ''}${step >= 2 ? '<button class="link" id="obSkip">Skip</button>' : ''}<button class="btn big" id="obNext" style="padding:12px 22px;font-size:15px">${step === steps.length - 1 ? 'Start editing' : 'Next'}</button></div>`);
     s.querySelectorAll('[data-m]').forEach((b) => b.onclick = () => { const id = b.dataset.m; p.makes = p.makes.includes(id) ? p.makes.filter((x) => x !== id) : [...p.makes, id]; b.classList.toggle('on'); });
     s.querySelectorAll('[data-p]').forEach((b) => b.onclick = () => { const id = b.dataset.p; p.posts = p.posts.includes(id) ? p.posts.filter((x) => x !== id) : [...p.posts, id]; b.classList.toggle('on'); });
     s.querySelectorAll('[data-l]').forEach((b) => b.onclick = () => { p.level = b.dataset.l; s.querySelectorAll('[data-l]').forEach((x) => x.classList.toggle('on', x === b)); });

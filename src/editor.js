@@ -14,6 +14,7 @@ import * as panels from './ui/panels.js';
 import * as topiUI from './ui/topi.js';
 import * as exportUI from './ui/export.js';
 import * as simple from './ui/simple.js';
+import { hydrate, icon } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const listeners = new Map();
@@ -250,8 +251,9 @@ async function boot() {
   // player
   app.player = new Player(p, $('preview'), (id) => app.getMedia(id));
   app.player.onTime = (t) => app.emit('time', t);
-  app.player.onEnd = () => $('playBtn').textContent = '▶';
+  app.player.onEnd = () => { $('playBtn').innerHTML = icon('play', 20); };
   // UI
+  hydrate();
   preview.mount(app); timeline.mount(app); inspector.mount(app); panels.mount(app); topiUI.mount(app); exportUI.mount(app); simple.mount(app);
   app.setMode(p.mode || app.profile.level || 'standard');
   wireChrome();
@@ -277,7 +279,7 @@ function wireChrome() {
   document.querySelectorAll('.tb-modes button').forEach((b) => b.onclick = () => app.setMode(b.dataset.mode));
   $('undo').onclick = app.doUndo; $('redo').onclick = app.doRedo;
   $('exportBtn').onclick = () => exportUI.open(app);
-  $('playBtn').onclick = () => { app.player.toggle(); $('playBtn').textContent = app.player.playing ? '❚❚' : '▶'; };
+  $('playBtn').onclick = () => { app.player.toggle(); $('playBtn').innerHTML = icon(app.player.playing ? 'pause' : 'play', 20); };
   $('toStart').onclick = () => app.seek(0); $('toEnd').onclick = () => app.seek(projectDuration(app.project));
   $('splitBtn').onclick = () => app.commands.split_at({}); $('delBtn').onclick = () => app.commands.remove_clip({});
   $('guidesBtn').onclick = (e) => { app.player.guides = !app.player.guides; e.currentTarget.setAttribute('aria-pressed', String(app.player.guides)); app.player.draw(); };
@@ -290,6 +292,9 @@ function wireChrome() {
   // Only a tap on the timeline or the preview opens the sheet on phones, not programmatic selection.
   ['tlTracks', 'preview', 'simpleView'].forEach((id) => $(id).addEventListener('pointerdown', () => { app._userSelect = true; setTimeout(() => { app._userSelect = false; }, 400); }, true));
   $('backdrop').onclick = app.closeSheet;
+  // Phones: the mode switch lives in the transport bar, where there is room.
+  const placeModes = () => { const m = document.querySelector('.tb-modes'); const phone = innerWidth <= 900; const target = phone ? document.querySelector('.transport') : document.querySelector('.topbar'); if (m.parentElement !== target) { if (phone) target.insertBefore(m, $('splitBtn')); else target.insertBefore(m, document.querySelector('.tb-actions')); } };
+  placeModes(); window.addEventListener('resize', placeModes);
   // file input and drag-drop
   $('fileInput').onchange = async (e) => { const ms = await app.importFiles(e.target.files); e.target.value = ''; if (ms.length && !trackOf(app.project, 'video').clips.length) for (const m of ms) if (m.kind !== 'audio') app.addToTimeline(m); app.openPanel('media'); };
   let dragDepth = 0;

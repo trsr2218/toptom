@@ -60,8 +60,8 @@ export function drawFrame(ctx, project, t, sources, opts = {}) {
 
 // Geometry of a media clip on the canvas: x, y, w, h of the drawn rect (before rotation).
 export function mediaRect(project, c, t, src, W, H) {
-  const sw = src ? (src.videoWidth || src.naturalWidth || src.width || 16) : 16;
-  const sh = src ? (src.videoHeight || src.naturalHeight || src.height || 9) : 9;
+  const sw = src ? (src.videoWidth || src.naturalWidth || src.displayWidth || src.width || 16) : 16;
+  const sh = src ? (src.videoHeight || src.naturalHeight || src.displayHeight || src.height || 9) : 9;
   const fit = c.fit || 'cover';
   let w, h;
   if (fit === 'fill') { w = W; h = H; }

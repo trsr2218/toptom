@@ -5,6 +5,7 @@ import { SIZES, trackOf, projectDuration } from '../model.js';
 import { media as mediaStore, brands, projects } from '../store.js';
 import { mediaURL } from '../media.js';
 import { uid } from '../model.js';
+import { icon } from '../icons.js';
 
 let app, current = 'media';
 const $ = (id) => document.getElementById(id);
@@ -30,15 +31,15 @@ function media() {
   return `<div class="p-title">Media <button class="btn sm primary" data-upload>Upload</button></div>
     <div class="drop-small" data-upload>Tap to add videos, photos or sound.<br><small>Or drop files anywhere.</small></div>
     ${items.length ? `<div class="grid2">${items.map((m) => `<div class="tile ${m.kind === 'audio' ? 'audio' : ''}" data-add="${m.id}" title="Add to timeline">
-      ${m.thumb ? `<img src="${m.thumb}" alt="">` : `<span style="font-size:22px">${m.kind === 'audio' ? '♪' : '▣'}</span>`}
-      <span class="kind">${m.kind === 'video' ? fmt(m.duration) : m.kind === 'audio' ? '♪ ' + fmt(m.duration) : 'IMG'}</span>
+      ${m.thumb ? `<img src="${m.thumb}" alt="">` : `<span class="dim">${icon(m.kind === 'audio' ? 'music' : 'video', 26)}</span>`}
+      <span class="kind">${m.kind === 'video' ? fmt(m.duration) : m.kind === 'audio' ? fmt(m.duration) : 'PHOTO'}</span>
       <span class="cap">${esc(m.name)}</span><button class="x" data-del="${m.id}" aria-label="Remove">×</button></div>`).join('')}</div>` : `<div class="empty">Nothing here yet. Upload a set, a replay, photos or a beat.</div>`}
     <p class="muted" style="font-size:12px;margin-top:12px">Tap a file to add it at the playhead. Files stay on this device.</p>`;
 }
 
 function text() {
   return `<div class="p-title">Text</div><p class="p-sub">Tap a style to add it at the playhead, then edit on the right.</p>
-    <div class="grid2">${TEXT_PRESETS.map((t) => `<div class="tile text-tile" data-text="${t.id}" style="font-family:'${t.font}';color:${t.color};background:${t.bg && t.bg !== 'transparent' ? t.bg : 'var(--card)'};${t.stroke ? `-webkit-text-stroke:1px ${t.stroke};` : ''}">${esc(t.text)}</div>`).join('')}</div>
+    <div class="grid2">${TEXT_PRESETS.map((t) => `<div class="tile text-tile" data-text="${t.id}" style="font-family:'${t.font}';color:${t.color};background:${t.bg && t.bg !== 'transparent' ? t.bg : '#2a2a3a'};${t.stroke ? `-webkit-text-stroke:1px ${t.stroke};` : ''}">${esc(t.text)}</div>`).join('')}</div>
     ${app.brand ? `<div class="sec"><h4>Brand</h4><button class="btn sm block" data-a="brandtext">Use brand font and colour on all text</button></div>` : ''}`;
 }
 
@@ -73,17 +74,17 @@ function music() {
   const sel = app.selected();
   const vid = sel && sel.clip.type === 'video' ? sel.clip : trackOf(app.project, 'video').clips.find((c) => c.type === 'video');
   return `<div class="p-title">Music and sound</div><p class="p-sub">Beats are made on your device, nothing to license. Music dips under speech.</p>
-    <div class="list">${MUSIC.map((m) => `<button class="btn" data-gen="${m.style}" style="text-align:left">♪ ${m.name} <span class="muted">${m.bpm} bpm</span></button>`).join('')}</div>
-    <div class="sec"><h4>Your tracks</h4>${items.length ? `<div class="list">${items.map((m) => `<button class="btn ghost" data-addmusic="${m.id}" style="text-align:left">♪ ${esc(m.name)} <span class="muted">${fmt(m.duration)}</span></button>`).join('')}</div>` : ''}<button class="btn sm block" data-upload style="margin-top:6px">Upload a track</button></div>
+    <div class="list">${MUSIC.map((m) => `<button class="btn" data-gen="${m.style}" style="justify-content:flex-start">${icon('music', 16)} ${m.name} <span class="muted">${m.bpm} bpm</span></button>`).join('')}</div>
+    <div class="sec"><h4>Your tracks</h4>${items.length ? `<div class="list">${items.map((m) => `<button class="btn ghost" data-addmusic="${m.id}" style="justify-content:flex-start">${icon('music', 16)} ${esc(m.name)} <span class="muted">${fmt(m.duration)}</span></button>`).join('')}</div>` : ''}<button class="btn sm block" data-upload style="margin-top:6px">Upload a track</button></div>
     ${vid ? `<div class="sec"><h4>Find the moment</h4><p class="muted" style="font-size:12px">Listens to "${esc(vid.name)}" and cuts it to the loudest part, the crowd, the drop.</p><div class="row">${[15, 30, 60].map((n) => `<button class="btn sm" data-best="${n}" data-clip="${vid.id}">${n} s</button>`).join('')}</div></div>` : ''}
-    <div class="sec"><h4>Voiceover</h4><p class="muted" style="font-size:12px">Record a line over the video.</p><button class="btn sm block" data-a="rec">● Record from the playhead</button><div id="recStatus" class="muted" style="font-size:12px;margin-top:4px"></div></div>`;
+    <div class="sec"><h4>Voiceover</h4><p class="muted" style="font-size:12px">Record a line over the video.</p><button class="btn sm block" data-a="rec">${icon('mic', 16)} Record from the playhead</button><div id="recStatus" class="muted" style="font-size:12px;margin-top:4px"></div></div>`;
 }
 
 function brand() {
   const b = app.brand;
   const logo = b && b.logoId ? app.getMedia(b.logoId) : null;
   return `<div class="p-title">Brand kit</div><p class="p-sub">Logo, colours and font, saved once, used on every video.</p>
-    <div class="row" style="margin-bottom:10px">${logo ? `<img src="${logo.thumb}" alt="" style="width:64px;height:64px;object-fit:contain;background:#000;border-radius:10px">` : `<div class="tile" style="width:64px;height:64px;aspect-ratio:auto">★</div>`}<div><button class="btn sm" data-a="logo">${logo ? 'Change logo' : 'Add logo'}</button>${logo ? `<button class="btn sm ghost" data-a="putlogo">Put it on this video</button>` : ''}</div></div>
+    <div class="row" style="margin-bottom:10px">${logo ? `<img src="${logo.thumb}" alt="" style="width:64px;height:64px;object-fit:contain;background:#000;border-radius:10px">` : `<div class="tile" style="width:64px;height:64px;aspect-ratio:auto">${icon('brand', 24)}</div>`}<div><button class="btn sm" data-a="logo">${logo ? 'Change logo' : 'Add logo'}</button>${logo ? `<button class="btn sm ghost" data-a="putlogo">Put it on this video</button>` : ''}</div></div>
     <label class="f">Brand colour<input type="color" data-b="color" value="${b?.color || '#FF7A1A'}"></label>
     <label class="f">Second colour<input type="color" data-b="color2" value="${b?.color2 || '#7B2CFF'}"></label>
     <label class="f">Font<select data-b="font">${FONTS.map((f) => `<option value="${f.id}" ${b?.font === f.id ? 'selected' : ''}>${f.name}</option>`).join('')}</select></label>
@@ -148,13 +149,13 @@ async function record(box) {
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); const parts = []; const at = app.time;
     rec.ondataavailable = (e) => parts.push(e.data);
     rec.onstop = async () => {
-      stream.getTracks().forEach((t) => t.stop()); app._rec = null; btn.textContent = '● Record from the playhead'; st.textContent = 'Saving...';
+      stream.getTracks().forEach((t) => t.stop()); app._rec = null; btn.innerHTML = icon('mic', 16) + ' Record from the playhead'; st.textContent = 'Saving...';
       const file = new File(parts, `voice-${Date.now()}.${mime.includes('mp4') ? 'm4a' : 'webm'}`, { type: mime || 'audio/webm' });
       const [m] = await app.importFiles([file]); if (!m) return;
       m.name = 'Voiceover'; await mediaStore.put(m);
       app.addToTimeline(m, { at, kind: 'voice' }); st.textContent = 'Added to the Voice track.'; app.player.pause();
     };
-    rec.start(); app._rec = rec; btn.textContent = '■ Stop'; st.textContent = 'Recording... the video plays along.';
+    rec.start(); app._rec = rec; btn.textContent = 'Stop recording'; st.textContent = 'Recording... the video plays along.';
     app.player.seek(at); app.player.play();
     app.player.onEnd = () => { rec.state === 'recording' && rec.stop(); };
   } catch (e) { st.textContent = 'Microphone not available: ' + (e.message || ''); }

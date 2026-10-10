@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Topier Editor</title>
 <meta name="description" content="Edit video in your browser with Topi on hand.">
-<meta name="theme-color" content="#0D0D10">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -14,11 +14,11 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/editor.css">
 </head>
 <body class="mode-standard">
-<div id="splash" class="splash" aria-hidden="true"><img src="/assets/brand/topier-logo-stacked.svg" alt="" width="150"><div class="splash-bar"><i></i></div></div>
+<div id="splash" class="splash" aria-hidden="true"><img src="/assets/brand/topier-logo-stacked-light.svg" alt="" width="150"><div class="splash-bar"><i></i></div></div>
 
 <header class="topbar">
   <a class="tb-brand" href="/" aria-label="Topier home"><img src="/assets/brand/topier-mark.svg" alt="" width="28" height="28"></a>
@@ -29,23 +29,23 @@
     <button data-mode="pro" role="tab">Pro</button>
   </div>
   <div class="tb-actions">
-    <button id="undo" class="ib" title="Undo (Ctrl+Z)" aria-label="Undo">↶</button>
-    <button id="redo" class="ib" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">↷</button>
+    <button id="undo" class="ib" title="Undo (Ctrl+Z)" aria-label="Undo"><i data-icon="undo" data-size="18"></i></button>
+    <button id="redo" class="ib" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><i data-icon="redo" data-size="18"></i></button>
     <span id="saved" class="tb-saved" aria-live="polite">Saved</span>
-    <button id="topiBtn" class="btn ghost tb-topi" aria-pressed="false"><img src="/assets/brand/topier-mark.svg" alt="" width="16" height="16"> Topi</button>
-    <button id="exportBtn" class="btn primary">Export</button>
+    <button id="topiBtn" class="btn ghost tb-topi" aria-pressed="false"><img src="/assets/brand/topier-mark.svg" alt="" width="16" height="16"><span>Topi</span></button>
+    <button id="exportBtn" class="btn primary"><i data-icon="download" data-size="16"></i>Export</button>
   </div>
 </header>
 
 <div class="shell">
   <nav class="rail" aria-label="Tools">
-    <button data-panel="media" class="on"><span class="ic">▣</span>Media</button>
-    <button data-panel="text"><span class="ic">T</span>Text</button>
-    <button data-panel="captions"><span class="ic">CC</span>Captions</button>
-    <button data-panel="looks"><span class="ic">◐</span>Looks</button>
-    <button data-panel="music"><span class="ic">♪</span>Music</button>
-    <button data-panel="brand"><span class="ic">★</span>Brand</button>
-    <button data-panel="project"><span class="ic">⚙</span>Project</button>
+    <button data-panel="media" class="on"><span class="ic"><i data-icon="upload" data-size="18"></i></span>Media</button>
+    <button data-panel="text"><span class="ic"><i data-icon="text" data-size="18"></i></span>Text</button>
+    <button data-panel="captions"><span class="ic"><i data-icon="captions" data-size="18"></i></span>Captions</button>
+    <button data-panel="looks"><span class="ic"><i data-icon="looks" data-size="18"></i></span>Looks</button>
+    <button data-panel="music"><span class="ic"><i data-icon="music" data-size="18"></i></span>Music</button>
+    <button data-panel="brand"><span class="ic"><i data-icon="brand" data-size="18"></i></span>Brand</button>
+    <button data-panel="project"><span class="ic"><i data-icon="settings" data-size="18"></i></span>Project</button>
   </nav>
   <aside class="panel" id="panel" aria-label="Tool panel"></aside>
 
@@ -55,16 +55,16 @@
       <div class="simple-view" id="simpleView" hidden></div>
     </div>
     <div class="transport">
-      <button id="toStart" class="ib" title="Start (Home)">⇤</button>
-      <button id="playBtn" class="ib play" title="Play (Space)" aria-label="Play">▶</button>
-      <button id="toEnd" class="ib" title="End (End)">⇥</button>
+      <button id="toStart" class="ib" title="Start (Home)"><i data-icon="skipBack" data-size="18"></i></button>
+      <button id="playBtn" class="ib play" title="Play (Space)" aria-label="Play"><i data-icon="play" data-size="20"></i></button>
+      <button id="toEnd" class="ib" title="End (End)"><i data-icon="skipFwd" data-size="18"></i></button>
       <span class="tc"><span id="tcNow">0:00.0</span> / <span id="tcEnd">0:00.0</span></span>
       <span class="spacer"></span>
-      <button id="splitBtn" class="btn ghost sm" title="Split at playhead (S)">Split</button>
-      <button id="delBtn" class="btn ghost sm" title="Delete (Del)">Delete</button>
-      <button id="guidesBtn" class="ib" title="Safe area guides" aria-pressed="true">⌗</button>
-      <button id="loopBtn" class="ib" title="Loop" aria-pressed="false">↻</button>
-      <button id="fitBtn" class="ib" title="Fit timeline" aria-label="Fit timeline">⤢</button>
+      <button id="splitBtn" class="btn ghost sm" title="Split at playhead (S)"><i data-icon="scissors" data-size="16"></i>Split</button>
+      <button id="delBtn" class="btn ghost sm" title="Delete (Del)"><i data-icon="trash" data-size="16"></i>Delete</button>
+      <button id="guidesBtn" class="ib" title="Safe area guides" aria-pressed="true"><i data-icon="guides" data-size="18"></i></button>
+      <button id="loopBtn" class="ib" title="Loop" aria-pressed="false"><i data-icon="loop" data-size="18"></i></button>
+      <button id="fitBtn" class="ib" title="Fit timeline" aria-label="Fit timeline"><i data-icon="fit" data-size="18"></i></button>
     </div>
   </main>
 
@@ -72,7 +72,7 @@
 
   <section class="timeline" id="timeline" aria-label="Timeline">
     <div class="tl-head">
-      <div class="tl-corner"><button id="addTrack" class="ib" title="Add a track (Pro)">+</button></div>
+      <div class="tl-corner"><button id="addTrack" class="ib" title="Add a track (Pro)"><i data-icon="plus" data-size="16"></i></button></div>
       <div class="tl-ruler" id="ruler"></div>
     </div>
     <div class="tl-body" id="tlBody">
@@ -83,7 +83,7 @@
 </div>
 
 <div class="topi" id="topi" hidden>
-  <div class="topi-head"><img src="/assets/brand/topier-mark.svg" alt="" width="22" height="22"><strong>Topi</strong><span id="topiLeft" class="muted"></span><button class="ib" id="topiClose" aria-label="Close">×</button></div>
+  <div class="topi-head"><img src="/assets/brand/topier-mark.svg" alt="" width="22" height="22"><strong>Topi</strong><span id="topiLeft" class="muted"></span><button class="ib" id="topiClose" aria-label="Close"><i data-icon="close" data-size="18"></i></button></div>
   <div class="topi-log" id="topiLog"></div>
   <form class="topi-form" id="topiForm"><input id="topiInput" placeholder="Ask Topi anything about this video" autocomplete="off" maxlength="500"><button class="btn primary sm" type="submit">Send</button></form>
 </div>

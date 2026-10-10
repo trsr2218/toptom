@@ -132,6 +132,8 @@ save('topier-logo-on-dark.svg', logoSVG({ bg: INK, glow: true }));
 save('topier-logo-white.svg', logoSVG({ style: 'mono', mono: '#fff', text: '#fff' }));
 save('topier-logo-black.svg', logoSVG({ style: 'mono', mono: '#000', text: '#000' }));
 save('topier-logo-stacked.svg', stackedSVG({}));
+save('topier-logo-light.svg', logoSVG({ text: '#1b1b2f' }));
+save('topier-logo-stacked-light.svg', stackedSVG({ text: '#1b1b2f' }));
 save('topier-logo-stacked-on-dark.svg', stackedSVG({ bg: INK, glow: true }));
 save('topier-logo-stacked-white.svg', stackedSVG({ style: 'mono', mono: '#fff', text: '#fff' }));
 save('topier-app-icon.svg', tileSVG({}));
@@ -143,6 +145,7 @@ save('topier-mark-black-1024.png', await png(emblemSVG({ style: 'mono', mono: '#
 const lh = (svg, w) => { const vb = /viewBox="([^"]+)"/.exec(svg)[1].split(' ').map(Number); return Math.round(w * vb[3] / vb[2]); };
 let s;
 s = logoSVG({}); save('topier-logo-2048.png', await png(s, 2048, lh(s, 2048)));
+s = logoSVG({ text: '#1b1b2f' }); save('topier-logo-light-2048.png', await png(s, 2048, lh(s, 2048)));
 s = logoSVG({ bg: INK, glow: true }); save('topier-logo-on-dark-2048.png', await png(s, 2048, lh(s, 2048)));
 s = logoSVG({ style: 'mono', mono: '#fff', text: '#fff' }); save('topier-logo-white-2048.png', await png(s, 2048, lh(s, 2048)));
 s = logoSVG({ style: 'mono', mono: '#000', text: '#000' }); save('topier-logo-black-2048.png', await png(s, 2048, lh(s, 2048)));

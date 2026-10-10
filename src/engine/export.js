@@ -6,6 +6,7 @@ import { clipEnd, sourceTime, projectDuration, prop } from '../model.js';
 import { mediaURL, decodeAudio } from '../media.js';
 import { drawFrame, loadWatermark } from './render.js';
 import { ensureFont } from '../presets.js';
+import { frameSourceFor, releaseBuffers } from './decoder.js';
 
 export function webCodecsAvailable() {
   return typeof VideoEncoder === 'function' && typeof AudioEncoder === 'function' && typeof VideoFrame === 'function';
@@ -25,9 +26,10 @@ export async function exportProject(project, preset, { getMedia, onProgress = ()
   return exportRecorder(project, { W, H, fps, duration }, getMedia, onProgress, signal);
 }
 
-// Frame sources for offline rendering: seek each video precisely and wait for the frame.
+// Frame sources for offline rendering. Video clips decode straight from the file with WebCodecs
+// (decoder.js); clips that cannot are seeked on a video element. Images are decoded once.
 function offlineSources(project, getMedia) {
-  const els = new Map(), images = new Map();
+  const els = new Map(), images = new Map(), decoders = new Map(), frames = new Map(), tried = new Set();
   const el = (c, m) => {
     let v = els.get(c.id);
     if (!v) { v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = mediaURL(m); els.set(c.id, v); }
@@ -39,18 +41,38 @@ function offlineSources(project, getMedia) {
     let done = false; const fin = () => { if (!done) { done = true; res(); } };
     v.onseeked = fin; v.currentTime = st; setTimeout(fin, 1500);
   });
+  const decoderFor = async (c, m) => {
+    if (decoders.has(c.id)) return decoders.get(c.id);
+    if (tried.has(c.id)) return null;
+    tried.add(c.id);
+    const fs = await frameSourceFor(m);
+    if (fs) decoders.set(c.id, fs);
+    return fs;
+  };
   return {
+    stats: { decoded: 0, seeked: 0 },
     async prepare(t) {
       const jobs = [];
       for (const tr of project.tracks) for (const c of tr.clips) {
         if (c.type === 'video') {
           const nearStart = t >= c.start - 0.001 && t < clipEnd(c);
           const nextStarts = tr.clips.some((n) => n !== c && Math.abs(n.start - clipEnd(c)) < 0.06 && t >= n.start && t < n.start + ((n.transIn && n.transIn.dur) || 0.5) + 0.05);
-          if (!nearStart && !nextStarts) continue;
+          if (!nearStart && !nextStarts) {
+            // finished with this clip: free its decoder
+            const d = decoders.get(c.id); if (d && t > clipEnd(c) + 3) { d.close(); decoders.delete(c.id); frames.delete(c.id); }
+            continue;
+          }
           const m = getMedia(c.mediaId); if (!m) continue;
-          const v = el(c, m);
           const st = nearStart ? sourceTime(c, t) : sourceTime(c, clipEnd(c) - 0.001);
-          jobs.push(ready(v).then(() => seek(v, Math.max(0, Math.min(st, (v.duration || st) - 0.001)))));
+          jobs.push((async () => {
+            const d = await decoderFor(c, m);
+            if (d) {
+              try { const f = await d.frameAt(Math.max(0, st)); if (f) { frames.set(c.id, f); this.stats.decoded++; return; } }
+              catch (e) { console.warn('decoder fell back to seeking for', c.name, e && e.message); d.close(); decoders.delete(c.id); }
+            }
+            const v = el(c, m);
+            await ready(v); await seek(v, Math.max(0, Math.min(st, (v.duration || st) - 0.001))); this.stats.seeked++;
+          })());
         } else if (c.type === 'image' && !images.has(c.mediaId)) {
           const m = getMedia(c.mediaId); if (!m) continue;
           const img = new Image(); img.src = mediaURL(m); images.set(c.mediaId, img);
@@ -61,10 +83,13 @@ function offlineSources(project, getMedia) {
     },
     get(c) {
       if (c.type === 'image') { const i = images.get(c.mediaId); return i && i.naturalWidth ? i : null; }
-      if (c.type === 'video') { const v = els.get(c.id); return v && v.readyState >= 2 ? v : null; }
+      if (c.type === 'video') {
+        const f = frames.get(c.id); if (f) return f;
+        const v = els.get(c.id); return v && v.readyState >= 2 ? v : null;
+      }
       return null;
     },
-    destroy() { for (const v of els.values()) v.src = ''; },
+    destroy() { for (const v of els.values()) v.src = ''; for (const d of decoders.values()) d.close(); decoders.clear(); frames.clear(); releaseBuffers(); },
   };
 }
 

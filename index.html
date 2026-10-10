@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Topier</title>
 <meta name="description" content="Canva for video, with a pro editor underneath and Topi, an AI assistant, one tap away. Edit in your browser. Free to start, no card needed.">
-<meta name="theme-color" content="#0D0D10">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
 <meta name="application-name" content="Topier">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Topier">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
@@ -31,82 +31,79 @@
 <meta name="twitter:image" content="/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/home.css">
 </head>
 <body>
-<div id="splash" class="splash" aria-hidden="true"><img src="/assets/brand/topier-logo-stacked.svg" alt="" width="180" height="186"><div class="splash-bar"><i></i></div></div>
+<div id="splash" class="splash" aria-hidden="true"><img src="/assets/brand/topier-logo-stacked-light.svg" alt="" width="180" height="186"><div class="splash-bar"><i></i></div></div>
 
-<header class="wrap top home-top">
-  <a class="brand" href="/" aria-label="Topier home"><img src="/assets/brand/topier-logo.svg" alt="Topier" width="150" height="40" decoding="async"></a>
-  <nav class="home-nav"><a href="/clip">Clip a set</a><a href="#templates">Templates</a><button class="link" id="profileBtn" type="button">Your setup</button></nav>
+<header class="wrap home-top">
+  <a class="brand" href="/" aria-label="Topier home"><img src="/assets/brand/topier-logo-light.svg" alt="Topier" width="150" height="40" decoding="async"></a>
+  <nav class="home-nav"><a href="/clip">Clip a set</a><a href="#templates">Templates</a><button class="pill" id="profileBtn" type="button">Your setup</button></nav>
 </header>
 
 <main class="wrap">
-  <noscript><section class="card"><p>Topier needs JavaScript. Turn it on and reload.</p></section></noscript>
+  <noscript><section class="card quiet"><p>Topier needs JavaScript. Turn it on and reload.</p></section></noscript>
 
-  <section class="hero" id="hero">
-    <div>
-      <h1>Edit video like a pro. Even if you have never edited.</h1>
-      <p class="lede">Canva for video, with a real editor underneath and Topi, your AI assistant, one tap away. Cuts, captions, looks, music, your brand. Made on your phone or laptop, nothing uploaded. Free to start, no card needed.</p>
-      <div class="hero-cta">
-        <button class="btn big" id="startBtn" type="button">Start a video</button>
-        <button class="btn big ghost" id="uploadBtn" type="button">Upload and edit</button>
-      </div>
-      <p class="tiny muted">Instagram, TikTok, YouTube, X, Facebook, WhatsApp Status. Runs in Chrome, Edge, Safari and Firefox.</p>
+  <section class="sky" id="hero">
+    <h1>What will you make today?</h1>
+    <p class="lede">Edit video like a pro, even if you have never edited. Cuts, captions, looks, music and your brand, with Topi one tap away. Nothing is uploaded. Free to start.</p>
+    <div class="hero-cta">
+      <button class="btn big" id="startBtn" type="button">Start a video</button>
+      <button class="btn big ghost" id="uploadBtn" type="button">Upload and edit</button>
     </div>
-    <div class="hero-art" aria-hidden="true">
-      <div class="phone"><div class="phone-screen"><div class="ph-title">YOUR NAME</div><div class="ph-cap"><span class="on">live</span> <span>at</span> <span>the</span> <span>lodge</span></div><div class="ph-pill">@yourhandle</div></div></div>
-      <div class="topi-card"><img src="/assets/brand/topier-mark.svg" alt="" width="20" height="20"><div><strong>Topi</strong><br><span id="topiLine">Your first 3 seconds are quiet. Start on the chorus instead?</span></div><button class="btn sm">Do it</button></div>
+    <div class="quick" id="quick">
+      <button type="button" data-size="reels"><span class="orb o-reels"><i data-icon="phone" data-size="26"></i></span>Reels and TikTok</button>
+      <button type="button" data-size="square"><span class="orb o-square"><i data-icon="square" data-size="26"></i></span>Square post</button>
+      <button type="button" data-size="portrait"><span class="orb o-feed"><i data-icon="feed" data-size="26"></i></span>Feed 4:5</button>
+      <button type="button" data-size="landscape"><span class="orb o-wide"><i data-icon="monitor" data-size="26"></i></span>YouTube</button>
+      <a href="/clip"><span class="orb o-clip"><i data-icon="clip" data-size="26"></i></span>Clip a set</a>
+      <a href="#templates"><span class="orb o-tpl"><i data-icon="grid" data-size="26"></i></span>Templates</a>
     </div>
+    <p class="tiny">Instagram, TikTok, YouTube, X, Facebook, WhatsApp Status. Chrome, Edge, Safari and Firefox.</p>
+    <div class="topi-card" aria-hidden="true"><span class="orb-topi"><img src="/assets/brand/topier-mark.svg" alt=""></span><div><strong>Topi</strong><br><span id="topiLine">Your first 3 seconds are quiet. Start on the chorus instead?</span></div><button class="btn" type="button" tabindex="-1">Do it</button></div>
   </section>
 
-  <section class="card quiet" id="newSection">
-    <h2>New video</h2>
-    <div class="sizes" id="sizes"></div>
-  </section>
-
-  <section class="card quiet" id="recentSection" hidden>
-    <div class="row-head"><h2>Your projects</h2><span class="muted tiny" id="storageNote"></span></div>
+  <section class="section" id="recentSection" hidden>
+    <div class="row-head"><h2>Continue editing</h2><span class="muted tiny" id="storageNote"></span></div>
     <div class="projects" id="projects"></div>
   </section>
 
-  <section class="card quiet" id="templates">
-    <h2>Templates</h2>
-    <p class="lede tiny">Text already placed. Drop in your clips and go.</p>
+  <section class="section" id="templates">
+    <div class="row-head"><h2>Templates for you</h2><span class="muted tiny">Text already placed. Drop in your clips and go.</span></div>
     <div class="templates" id="tplGrid"></div>
   </section>
 
-  <section class="card quiet">
-    <h2>What Topier does</h2>
+  <section class="section">
+    <div class="row-head"><h2>Everything you need, in one place</h2></div>
     <div class="features">
-      <div><strong>Finds the moment.</strong> Drop in a full set or a stream replay. Topier listens and cuts to the crowd going up.</div>
-      <div><strong>Captions, word by word.</strong> Written on your device. Karaoke style, three looks, any font.</div>
-      <div><strong>One tap looks.</strong> Golden hour, film, teal and orange, noir. The same pixels at export.</div>
-      <div><strong>Music that ducks.</strong> Beats made on your device or your own track. Dips under speech by itself.</div>
-      <div><strong>Three editors in one.</strong> Simple cards, a real timeline, or Pro with tracks and keyframes. Switch any time.</div>
-      <div><strong>Topi sees your project.</strong> Not a chat box in a corner. One suggestion at a time, applied with a tap.</div>
-      <div><strong>Your brand, once.</strong> Logo, colours, font, handle. Outro card in one tap.</div>
-      <div><strong>Private by design.</strong> Projects live in your browser. Nothing is uploaded to edit or export.</div>
+      <div class="feat peach"><span class="ic"><i data-icon="bolt" data-size="22"></i></span><div><strong>Finds the moment</strong><span>Drop in a full set. Topier listens and cuts to the crowd going up.</span></div></div>
+      <div class="feat lilac"><span class="ic"><i data-icon="captions" data-size="22"></i></span><div><strong>Captions, word by word</strong><span>Written on your device. Karaoke style, three looks, any font.</span></div></div>
+      <div class="feat lemon"><span class="ic"><i data-icon="looks" data-size="22"></i></span><div><strong>One tap looks</strong><span>Golden hour, film, teal and orange, noir. The same pixels at export.</span></div></div>
+      <div class="feat mint"><span class="ic"><i data-icon="music" data-size="22"></i></span><div><strong>Music that ducks</strong><span>Beats made on your device or your own track. Dips under speech by itself.</span></div></div>
+      <div class="feat sky-w"><span class="ic"><i data-icon="layers" data-size="22"></i></span><div><strong>Three editors in one</strong><span>Simple cards, a real timeline, or Pro with tracks and keyframes.</span></div></div>
+      <div class="feat rose"><span class="ic"><i data-icon="sparkle" data-size="22"></i></span><div><strong>Topi sees your project</strong><span>One suggestion at a time, applied with a tap. Never in the way.</span></div></div>
+      <div class="feat lilac"><span class="ic"><i data-icon="brand" data-size="22"></i></span><div><strong>Your brand, once</strong><span>Logo, colours, font, handle. Outro card in one tap.</span></div></div>
+      <div class="feat mint"><span class="ic"><i data-icon="lock" data-size="22"></i></span><div><strong>Private by design</strong><span>Projects live in your browser. Nothing is uploaded to edit or export.</span></div></div>
     </div>
   </section>
 
-  <section class="card quiet">
-    <h2>Plans</h2>
+  <section class="section">
+    <div class="row-head"><h2>Plans</h2><span class="muted tiny">Early access: everything is open while we build.</span></div>
     <div class="plans">
       <div class="plan"><h3>Free</h3><div class="price">$0</div><ul><li>720p and 1080p export, small Topier mark</li><li>All editing tools, captions, looks, music</li><li>Topi Guide, 15 messages a day</li><li>3 projects on this device</li></ul></div>
       <div class="plan hot"><h3>Creator</h3><div class="price">$8<span>/month</span></div><ul><li>No watermark</li><li>Topi Co-pilot, applies changes for you</li><li>Brand kit, all templates</li><li>Cloud save when accounts land</li></ul><p class="tiny muted">7 day trial is on for everyone during early access.</p></div>
       <div class="plan"><h3>Pro</h3><div class="price">$18<span>/month</span></div><ul><li>4K export, custom bitrate</li><li>Topi Autopilot, edits from a prompt</li><li>3 brand kits, premium looks</li></ul></div>
     </div>
-    <p class="tiny muted">Early access: everything is open while we build. Kwacha pricing and mobile money for Zambia at launch.</p>
+    <p class="tiny muted">Kwacha pricing and mobile money for Zambia at launch.</p>
   </section>
 </main>
 
 <footer class="wrap foot">
-  <img class="foot-mark" src="/assets/brand/topier-mark-white.svg" alt="" width="22" height="22" aria-hidden="true">
+  <img class="foot-mark" src="/assets/brand/topier-mark.svg" alt="" width="22" height="22" aria-hidden="true">
   <p>Topier, the video editor with Topi on hand. <button class="link" id="install" type="button" hidden>Install the app</button></p>
-  <p class="tiny">Topi is AI and can be wrong. Nothing is applied without your tap. You own what you make. <a href="mailto:getitdonerapid@gmail.com">getitdonerapid@gmail.com</a></p>
+  <p class="tiny">Topi is AI and can be wrong. Nothing is applied without your tap. You own what you make. <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="mailto:getitdonerapid@gmail.com">getitdonerapid@gmail.com</a></p>
 </footer>
 
 <div class="sheet-backdrop" id="backdrop" hidden></div>
