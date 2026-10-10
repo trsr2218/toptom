@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "brand": "node brand/make.mjs",
-    "start": "node serve.mjs"
+    "start": "node serve.mjs",
+    "push-env": "node scripts/push-env.mjs"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.47.10",
