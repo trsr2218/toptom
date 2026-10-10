@@ -219,7 +219,8 @@ kbd { background: var(--card2); border: 1px solid var(--line2); border-radius: 5
   .transport .btn.sm svg { width: 18px; height: 18px; }
   .mode-simple .shell { grid-template-columns: 1fr; grid-template-rows: 1fr 62px; grid-template-areas: "stage" "rail"; }
   .mode-simple .preview-wrap { grid-template-columns: 1fr; grid-template-rows: 1fr auto; justify-items: center; }
-  .simple-view { max-height: 40vh; width: 100%; }
+  .simple-view { max-height: 45vh; width: 100%; }
+  .mode-simple .transport #splitBtn, .mode-simple .transport #delBtn { display: none; }
   .topi { right: 8px; left: 8px; width: auto; bottom: calc(var(--tl) + 74px); max-height: 55vh; }
   .topi-bubble { bottom: calc(var(--tl) + 74px); right: 12px; width: 50px; height: 50px; }
   .mode-simple .topi-bubble { bottom: 74px; } .mode-simple .topi { bottom: 74px; }

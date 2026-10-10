@@ -60,7 +60,8 @@ export function resize() {
   fitCanvas();
   const wrap = $('previewWrap'), cv = $('preview'), p = app.project;
   const pad = 32, simple = app.mode === 'simple' && innerWidth > 900;
-  const aw = wrap.clientWidth - pad - (simple ? 336 : 0), ah = wrap.clientHeight - pad;
+  const phoneSimple = app.mode === 'simple' && innerWidth <= 900;
+  const aw = wrap.clientWidth - pad - (simple ? 336 : 0), ah = (phoneSimple ? wrap.clientHeight * 0.5 : wrap.clientHeight) - pad;
   const r = Math.min(aw / p.w, ah / p.h);
   cv.style.width = `${Math.max(80, Math.floor(p.w * r))}px`; cv.style.height = `${Math.max(80, Math.floor(p.h * r))}px`;
   app.player.draw();
