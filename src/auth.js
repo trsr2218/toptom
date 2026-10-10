@@ -75,17 +75,17 @@ export async function token() { if (!client) return null; const { data } = await
 
 export async function signInGoogle() {
   if (!client) throw new Error('Accounts are not set up on this server yet.');
-  const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } } });
+  const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/', queryParams: { prompt: 'select_account' } } });
   if (error) throw new Error(friendly(error.message));
 }
 export async function signInEmail(email) {
   if (!client) throw new Error('Accounts are not set up on this server yet.');
-  const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, data: { app: 'topier' } } });
+  const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + '/', data: { app: 'topier' } } });
   if (error) throw new Error(friendly(error.message));
 }
 export async function signUpPassword(email, password, name) {
   if (!client) throw new Error('Accounts are not set up on this server yet.');
-  const { data, error } = await client.auth.signUp({ email, password, options: { data: { app: 'topier', name }, emailRedirectTo: location.origin + location.pathname } });
+  const { data, error } = await client.auth.signUp({ email, password, options: { data: { app: 'topier', name }, emailRedirectTo: location.origin + '/' } });
   if (error) throw new Error(friendly(error.message));
   return !!(data.session); // false means "confirm your email first"
 }
