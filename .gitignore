@@ -8,3 +8,6 @@ brand/src/_*
 .claude/
 .env*
 config.local.js
+
+.vercel
+.env*
