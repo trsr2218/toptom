@@ -1,8 +1,8 @@
-/node_modules
-/_test
-/brand/src
-/supabase
-/scripts
+node_modules
+_test
+brand/src
+supabase/*.sql
+scripts/*.mjs
 .env*
 .claude
 *.md

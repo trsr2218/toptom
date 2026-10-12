@@ -14,7 +14,7 @@ async function loadConfig() {
 }
 function loadLib() {
   if (window.supabase) return Promise.resolve();
-  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = '/vendor/supabase/supabase.js'; s.onload = res; s.onerror = () => rej(new Error('supabase-js failed to load')); document.head.appendChild(s); });
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = '/vendor/sbjs/supabase.js'; s.onload = res; s.onerror = () => rej(new Error('supabase-js failed to load')); document.head.appendChild(s); });
 }
 
 export function init() {
