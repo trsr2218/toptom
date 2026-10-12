@@ -15,7 +15,7 @@ let profile = {};
 async function boot() {
   hydrate();
   profile = (await settings.get('profile', null)) || null;
-  account.mount($('accountBtn'), { sheet, closeSheet, toast: (m) => { const t = $('storageNote'); }, onChange: async (u) => { if (u) { profile = (await settings.get('profile', null)) || profile; renderTemplates(); await mergeCloud(); await renderProjects(); } } });
+  account.mount($('accountBtn'), { sheet, closeSheet, oneTap: true, toast: (m) => { const t = $('storageNote'); }, onChange: async (u) => { if (u) { profile = (await settings.get('profile', null)) || profile; renderTemplates(); await mergeCloud(); await renderProjects(); } } });
   document.addEventListener('topier-open-setup', () => onboarding(() => location.reload()));
   renderTemplates(); await renderProjects();
   $('startBtn').onclick = () => profile ? go(newUrl(profile.size || 'reels')) : onboarding(() => go(newUrl(profile.size || 'reels')));

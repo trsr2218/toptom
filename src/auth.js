@@ -78,6 +78,10 @@ export async function googleEnabled() {
   try { const r = await fetch(`${sbCfg.supabaseUrl}/auth/v1/settings`, { headers: { apikey: sbCfg.supabaseAnonKey } }); const j = await r.json(); googleOn = !!(j.external && j.external.google); } catch { googleOn = false; }
   return googleOn;
 }
+// The Google OAuth client ID is a public identifier (it ships in every page load), so a built-in default is safe.
+// GOOGLE_CLIENT_ID in the server environment overrides it.
+const GOOGLE_CLIENT_ID = '541798318088-t7i3uqpdihatrf3530p58qgqpuvdej4n.apps.googleusercontent.com';
+export const googleClientId = () => (sbCfg && sbCfg.googleClientId) || GOOGLE_CLIENT_ID;
 export const currentUser = () => user;
 export const currentPlan = () => plan;
 // Re-read the plan after a payment, and tell everyone listening.
@@ -96,6 +100,12 @@ export async function token() { if (!client) return null; const { data } = await
 export async function signInGoogle() {
   if (!client) throw new Error('Accounts are not set up on this server yet.');
   const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/', queryParams: { prompt: 'select_account' } } });
+  if (error) throw new Error(friendly(error.message));
+}
+// Google's button and One Tap sign in on this page: Google hands over an ID token, Supabase checks it and its nonce.
+export async function signInGoogleToken(token, nonce) {
+  if (!client) throw new Error('Accounts are not set up on this server yet.');
+  const { error } = await client.auth.signInWithIdToken({ provider: 'google', token, nonce });
   if (error) throw new Error(friendly(error.message));
 }
 // Sign in with a wallet on Base: the wallet signs a one-time message, the server checks it on chain

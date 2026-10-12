@@ -3,6 +3,7 @@ import * as auth from '../auth.js';
 import { icon } from '../icons.js';
 import * as checkout from './checkout.js';
 import * as W from '../wallet.js';
+import * as G from '../google.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -11,7 +12,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
  * button: the element to render the sign-in button or avatar into.
  * sheet(html) must return the sheet element; closeSheet() hides it.
  */
-export function mount(button, { sheet, closeSheet, toast = () => {}, compact = false, onChange = () => {} }) {
+export function mount(button, { sheet, closeSheet, toast = () => {}, compact = false, oneTap = false, onChange = () => {} }) {
   const render = (user, plan) => {
     if (!auth.available()) { button.hidden = true; return; }
     button.hidden = false;
@@ -29,17 +30,33 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
   const ui = { sheet, closeSheet, toast, signIn: () => signInSheet() };
   document.addEventListener('topier-open-plans', (e) => checkout.open(ui, (e.detail && e.detail.plan) || 'creator'));
   auth.onChange(render);
-  auth.init().then(() => render(auth.currentUser(), auth.currentPlan()));
+  auth.init().then(() => { render(auth.currentUser(), auth.currentPlan()); if (oneTap && !auth.currentUser()) G.oneTap(); });
+  // One Tap can answer with no sheet open, so the welcome is said from here.
+  G.listen({ done: () => toast('Signed in with Google') });
 
   // Google on top when it is switched on in Supabase, then any wallet on Base. Email stays as a quiet fallback.
-  const googleSlot = () => `<div class="g-slot" hidden><button class="btn google" id="auGoogle" type="button">${googleMark()} Continue with Google</button><div class="or"><span>or use a wallet</span></div></div>`;
+  // Google's own button signs in on this page. If it has not drawn in a few seconds, ours takes over and goes through Supabase.
+  const googleSlot = () => `<div class="g-slot" hidden><div class="g-host"></div><button class="btn google" id="auGoogle" type="button" hidden>${googleMark()} Continue with Google</button><p class="tiny muted" id="auInApp" hidden>Google sign-in does not work inside this app's browser. Open topier.store in Chrome or Safari, or use another way below.</p><div class="or"><span>or use a wallet</span></div></div>`;
   function wireGoogle(s, msg) {
-    const g = s.querySelector('.g-slot'), lead = s.querySelector('#auLead');
-    s.querySelector('#auGoogle').onclick = async (e) => {
-      e.currentTarget.disabled = true; msg('Opening Google...');
-      try { await auth.signInGoogle(); } catch (err) { msg(err.message, true); e.currentTarget.disabled = false; }
+    const g = s.querySelector('.g-slot'), lead = s.querySelector('#auLead'), host = s.querySelector('.g-host'), own = s.querySelector('#auGoogle');
+    const redirect = async () => {
+      own.disabled = true; msg('Opening Google...');
+      try { await auth.signInGoogle(); } catch (err) { msg(err.message, true); own.disabled = false; }
     };
-    auth.googleEnabled().then((on) => { if (!on || !g.isConnected) return; g.hidden = false; if (lead) lead.textContent = 'Use your Google account or your wallet on Base. No password needed. Your account is created the first time you sign in.'; });
+    own.onclick = redirect;
+    const stop = G.listen({
+      busy: (on) => { if (!g.isConnected) return stop(); if (on) msg('Signing you in with Google...'); },
+      done: () => { if (g.isConnected) closeSheet(); stop(); },
+      // Google said yes and our check said no: the redirect asks Google again.
+      fail: () => { if (!g.isConnected) return stop(); host.hidden = true; own.hidden = false; redirect(); },
+    });
+    auth.googleEnabled().then(async (on) => {
+      if (!on || !g.isConnected) return;
+      g.hidden = false;
+      if (lead) lead.textContent = 'Use your Google account or your wallet on Base. No password needed. Your account is created the first time you sign in.';
+      if (G.inAppBrowser()) { host.hidden = true; s.querySelector('#auInApp').hidden = false; return; }
+      if (!(await G.button(host))) { host.hidden = true; own.hidden = false; }
+    });
   }
   function walletBlock() {
     const ws = W.wallets();
