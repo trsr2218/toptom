@@ -4,6 +4,7 @@ import { projects, media as mediaStore, settings, usage, persist } from './store
 import { importFile } from './media.js';
 import { TEMPLATES, ONBOARD } from './presets.js';
 import { hydrate } from './icons.js';
+import * as H from './habits.js';
 import * as auth from './auth.js';
 import * as account from './ui/account.js';
 
@@ -33,8 +34,8 @@ async function boot() {
     go(`/editor?id=${p.id}&add=${ids.join(',')}`);
   };
   $('profileBtn').onclick = () => onboarding(() => location.reload());
-  const topiLines = ['Your first 3 seconds are quiet. Start on the chorus instead?', 'Most people watch on mute. Want captions on this?', 'Golden hour would suit this light. Try it?', 'The crowd goes up at 12:40. Cut there?'];
-  let i = 0; setInterval(() => { i = (i + 1) % topiLines.length; $('topiLine').textContent = topiLines[i]; }, 4200);
+  topiHome();
+  document.querySelectorAll('[data-buy]').forEach((b) => b.onclick = () => document.dispatchEvent(new CustomEvent('topier-open-plans', { detail: { plan: b.dataset.buy } })));
   let installEvt = null;
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; $('install').hidden = false; });
   $('install').onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('install').hidden = true; };
@@ -43,6 +44,43 @@ async function boot() {
   if (!profile && !location.hash) setTimeout(() => onboarding(), 600);
 }
 const go = (u) => { location.href = u; };
+
+// Topi on the home page: introduces itself the first time, then greets with something useful.
+// Close hides it to a small orb; the choice is remembered.
+const TH_KEY = 'topier-topi-home';
+async function topiHome() {
+  const card = $('thCard'), bubble = $('thBubble');
+  const state = () => { try { return localStorage.getItem(TH_KEY) || ''; } catch { return ''; } };
+  const setState = (v) => { try { localStorage.setItem(TH_KEY, v); } catch {} };
+  const show = (open) => { card.hidden = !open; bubble.hidden = open; $('thDot').hidden = true; };
+  $('thClose').onclick = () => { setState('closed'); show(false); };
+  bubble.onclick = () => { setState('open'); show(true); };
+  const name = profile && profile.name ? profile.name.split(' ')[0] : '';
+  let body, buttons;
+  const first = !H.introSeen();
+  if (first) {
+    body = '<p>Hi' + (name ? ' ' + esc(name) : '') + ', I am <strong>Topi</strong>. I live inside Topier and help you edit.</p>'
+      + '<ul><li>Find the best moment in a long video</li><li>Write captions and pick a look</li><li>Add a beat and fix the size for each app</li><li>Answer any how-to, any time</li></ul>'
+      + '<p class="tiny muted">I learn how you like to edit, so I get more like you over time. Hide me whenever you like.</p>';
+    buttons = [['Start a video with me', 'start'], ['Maybe later', 'close']];
+  } else {
+    const recent = (await projects.list())[0];
+    body = recent
+      ? '<p>Welcome back' + (name ? ', ' + esc(name) : '') + '. Pick up <strong>' + esc(recent.name) + '</strong> where you left off?</p>' + (H.favourite('look') ? '<p class="tiny muted">I will keep your usual look ready.</p>' : '')
+      : '<p>Welcome back' + (name ? ', ' + esc(name) : '') + '. Ready to make something?</p>';
+    buttons = recent ? [['Open it', 'resume:' + recent.id], ['New video', 'start']] : [['Start a video', 'start'], ['Not now', 'close']];
+  }
+  $('thBody').innerHTML = body;
+  $('thActs').innerHTML = buttons.map(([label, id], i) => '<button class="btn ' + (i ? 'ghost' : 'big') + ' sm" data-th="' + id + '">' + label + '</button>').join('');
+  $('thActs').querySelectorAll('[data-th]').forEach((b) => b.onclick = () => {
+    const id = b.dataset.th;
+    if (id === 'close') { setState('closed'); show(false); return; }
+    if (id.startsWith('resume:')) return go('/editor?id=' + id.slice(7));
+    $('startBtn').click();
+  });
+  if (first) show(state() !== 'closed');
+  else { show(state() === 'open'); if (state() !== 'open') $('thDot').hidden = false; }
+}
 const newUrl = (size) => `/editor?size=${size}${profile && profile.level ? `&mode=${profile.level}` : ''}`;
 
 function renderTemplates() {

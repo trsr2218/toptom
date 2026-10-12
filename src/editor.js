@@ -15,6 +15,7 @@ import * as topiUI from './ui/topi.js';
 import * as exportUI from './ui/export.js';
 import * as simple from './ui/simple.js';
 import { hydrate, icon } from './icons.js';
+import * as H from './habits.js';
 import * as auth from './auth.js';
 import * as account from './ui/account.js';
 
@@ -61,7 +62,7 @@ export const app = {
     document.body.classList.remove('mode-simple', 'mode-standard', 'mode-pro'); document.body.classList.add('mode-' + mode);
     document.querySelectorAll('.tb-modes button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === mode)));
     $('simpleView').hidden = mode !== 'simple';
-    app.emit('mode', mode); app.touch(true);
+    app.emit('mode', mode); app.touch(true); H.bump('mode', mode);
     setTimeout(() => preview.resize(), 50);
   },
 
@@ -76,7 +77,9 @@ export const app = {
     return s;
   },
   closeSheet() { $('sheet').hidden = true; $('backdrop').hidden = true; $('sheet').innerHTML = ''; app._sheetAbort && app._sheetAbort.abort(); app._sheetAbort = null; },
-  openPanel(name) { document.querySelectorAll('.rail button').forEach((b) => b.classList.toggle('on', b.dataset.panel === name)); app.emit('panel', name); $('panel').classList.add('open'); $('inspector').classList.remove('open'); },
+  // Phones: one bottom sheet at a time, closed by its bar, by tapping outside, or by picking something.
+  showSheet(which) { if (innerWidth > 900) return; $('panel').classList.toggle('open', which === 'panel'); $('inspector').classList.toggle('open', which === 'inspector'); $('phoneScrim').hidden = !which; document.body.classList.toggle('sheet-open', !!which); if (!which) document.querySelectorAll('.rail button').forEach((b) => b.classList.remove('on')); },
+  openPanel(name) { document.querySelectorAll('.rail button').forEach((b) => b.classList.toggle('on', b.dataset.panel === name)); app.emit('panel', name); if (innerWidth <= 900) app.showSheet('panel'); else { $('panel').classList.add('open'); $('inspector').classList.remove('open'); } },
 
   // ---------- media ----------
   async importFiles(files) {
@@ -116,7 +119,8 @@ export const app = {
       if (app.brand && app.brand.font) c.font = app.brand.font;
       ensureFont(c.font);
       app.set('Add text', (p) => { const tr = trackOf(p, 'text'); tr.clips.push(c); });
-      app.select(c.id); app.openPanel('text');
+      app.select(c.id);
+      if (innerWidth <= 900) app.showSheet('inspector'); else app.openPanel('text');
       return c;
     },
     apply_look({ look = 'golden', clipId = null, amount = 1 } = {}) {
@@ -209,6 +213,8 @@ export const app = {
       app.set('Reorder', (p) => { const tr = trackOf(p, 'video'); tr.clips.sort((a, b) => a.start - b.start); const i = tr.clips.findIndex((c) => c.id === clipId); const j = i + dir; if (i < 0 || j < 0 || j >= tr.clips.length) return; [tr.clips[i], tr.clips[j]] = [tr.clips[j], tr.clips[i]]; ripple(tr); });
     },
   },
+  // Learn what this person reaches for, so Topi can follow their style.
+  _learn(type, a = {}) { H.bump('cmd', type); if (type === 'apply_look') H.bump('look', a.look); if (type === 'add_text') H.bump('text', a.preset); if (type === 'add_music' && a.style && !a.mediaId) H.bump('music', a.style); if (type === 'set_transitions') H.bump('trans', a.trans); if (type === 'resize') H.bump('size', a.size); },
   run(action) {
     const fn = app.commands[action.type];
     if (!fn) return app.toast('Topi tried something this editor cannot do yet.');
@@ -256,6 +262,10 @@ async function boot() {
   app.player.onEnd = () => { $('playBtn').innerHTML = icon('play', 20); };
   // UI
   hydrate();
+  H.session();
+  for (const [k, fn] of Object.entries(app.commands)) app.commands[k] = (a = {}) => { app._learn(k, a); return fn(a); };
+  document.querySelectorAll('[data-close-sheet]').forEach((b) => b.onclick = () => app.showSheet(null));
+  $('phoneScrim').onclick = () => app.showSheet(null);
   preview.mount(app); timeline.mount(app); inspector.mount(app); panels.mount(app); topiUI.mount(app); exportUI.mount(app); simple.mount(app);
   app.setMode(p.mode || app.profile.level || 'standard');
   wireChrome();
@@ -292,7 +302,7 @@ function wireChrome() {
   document.querySelectorAll('.rail button').forEach((b) => b.onclick = () => { const open = b.classList.contains('on') && $('panel').classList.contains('open') && innerWidth <= 900; if (open) { $('panel').classList.remove('open'); b.classList.remove('on'); } else app.openPanel(b.dataset.panel); });
   app.on('time', (t) => { $('tcNow').textContent = tc(t); });
   app.on('change', () => { $('tcEnd').textContent = tc(projectDuration(app.project)); });
-  app.on('select', (id) => { if (innerWidth > 900) return; if (id && app._userSelect) { $('inspector').classList.add('open'); $('panel').classList.remove('open'); } else if (!id) $('inspector').classList.remove('open'); });
+  app.on('select', (id) => { if (innerWidth > 900) return; if (id && app._userSelect) app.showSheet('inspector'); else if (!id && $('inspector').classList.contains('open')) app.showSheet(null); });
   // Only a tap on the timeline or the preview opens the sheet on phones, not programmatic selection.
   ['tlTracks', 'preview', 'simpleView'].forEach((id) => $(id).addEventListener('pointerdown', () => { app._userSelect = true; setTimeout(() => { app._userSelect = false; }, 400); }, true));
   $('backdrop').onclick = app.closeSheet;

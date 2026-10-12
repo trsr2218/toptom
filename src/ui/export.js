@@ -2,6 +2,7 @@
 import { EXPORTS } from '../presets.js';
 import { exportProject, webCodecsAvailable } from '../engine/export.js';
 import { projectDuration } from '../model.js';
+import * as H from '../habits.js';
 
 let app;
 export function mount(a) { app = a; }
@@ -11,7 +12,8 @@ export function open(a) {
   const p = app.project, dur = projectDuration(p);
   if (dur <= 0) return app.toast('Add a clip first.', true);
   const port = p.h > p.w, sq = p.h === p.w;
-  const list = [...EXPORTS].sort((x, y) => score(y) - score(x));
+  const fav = H.favourite('export', 1);
+  const list = [...EXPORTS].sort((x, y) => (score(y) - score(x)) || ((y.id === fav) - (x.id === fav)));
   function score(e) { const ep = e.h > e.w, es = e.h === e.w; return (ep === port && es === sq) ? 2 : (ep === port ? 1 : 0); }
   const s = app.sheet(`<h3>Export</h3><p class="muted">${Math.round(dur)} seconds · made on this device${webCodecsAvailable() ? '' : ' · this browser records in real time'}</p>
     <div class="preset-list">${list.map((e, i) => `<label><input type="radio" name="preset" value="${e.id}" ${i === 0 ? 'checked' : ''}> <strong>${e.name}</strong><small>${e.w} × ${e.h}${score(e) < 2 ? ' · refits' : ''}</small></label>`).join('')}</div>
@@ -36,6 +38,7 @@ async function run(s) {
   app.player.pause();
   const t0 = performance.now();
   try {
+    H.bump('export', preset.id); H.length(projectDuration(p));
     const blob = await exportProject(p, preset, {
       getMedia: (mid) => app.getMedia(mid), signal: ac.signal,
       onProgress: ({ stage, pct, eta }) => {

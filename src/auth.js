@@ -2,6 +2,7 @@
 // Without configuration Topier stays local-only and every call here is a harmless no-op.
 import { settings } from './store.js';
 
+let sbCfg = null, googleOn = null;
 let client = null, user = null, plan = 'free', profile = null, ready = null;
 const listeners = new Set();
 const PLAN_KEY = 'topier-plan';
@@ -20,6 +21,7 @@ export function init() {
   ready ??= (async () => {
     const cfg = await loadConfig();
     if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) return false;
+    sbCfg = cfg;
     await loadLib();
     client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
     const { data } = await client.auth.getSession();
@@ -68,8 +70,24 @@ export async function saveProfile(p) {
 }
 
 export const available = () => !!client;
+// Is Google sign-in switched on in Supabase? Asked once, so the button never leads nowhere.
+export async function googleEnabled() {
+  if (googleOn !== null) return googleOn;
+  try { const r = await fetch(`${sbCfg.supabaseUrl}/auth/v1/settings`, { headers: { apikey: sbCfg.supabaseAnonKey } }); const j = await r.json(); googleOn = !!(j.external && j.external.google); } catch { googleOn = false; }
+  return googleOn;
+}
 export const currentUser = () => user;
 export const currentPlan = () => plan;
+// Re-read the plan after a payment, and tell everyone listening.
+export async function refreshPlan() {
+  if (!client || !user) return plan;
+  try { const { data } = await client.rpc('topier_my_plan'); plan = typeof data === 'string' && data ? data : 'free'; } catch {}
+  try { localStorage.setItem(PLAN_KEY, plan); } catch {}
+  for (const fn of listeners) { try { fn(user, plan); } catch {} }
+  return plan;
+}
+export async function subscription() { if (!client || !user) return null; try { const { data } = await client.rpc('topier_my_subscription'); return (data && data[0]) || null; } catch { return null; } }
+export async function isOwner() { if (!client || !user) return false; try { const { data } = await client.rpc('topier_is_owner'); return data === true; } catch { return false; } }
 export function onChange(fn) { listeners.add(fn); if (ready) ready.then(() => fn(user, plan)); return () => listeners.delete(fn); }
 export async function token() { if (!client) return null; const { data } = await client.auth.getSession(); return data.session ? data.session.access_token : null; }
 

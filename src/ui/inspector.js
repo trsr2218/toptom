@@ -10,7 +10,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 export function mount(a) { app = a; app.on('select', render); app.on('change', render); app.on('mode', render); }
 
 function render() {
-  const box = $('inspector');
+  const box = $('inspectorBody');
   const f = app.selected();
   if (!f) { box.innerHTML = projectForm(); wireProject(box); return; }
   const { clip: c, track } = f;

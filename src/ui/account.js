@@ -1,6 +1,7 @@
 // The account button and sheet, shared by the home page and the editor.
 import * as auth from '../auth.js';
 import { icon } from '../icons.js';
+import * as checkout from './checkout.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -24,13 +25,15 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
     }
     onChange(user, plan);
   };
+  const ui = { sheet, closeSheet, toast, signIn: () => signInSheet() };
+  document.addEventListener('topier-open-plans', (e) => checkout.open(ui, (e.detail && e.detail.plan) || 'creator'));
   auth.onChange(render);
   auth.init().then(() => render(auth.currentUser(), auth.currentPlan()));
 
   function signInSheet(mode = 'link') {
     const s = sheet(`<h3>Sign in to Topier</h3><p class="muted">Keep your projects and your setup on every device. Free to start, no card needed.</p>
-      <button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
-      <div class="or"><span>or</span></div>
+      <div class="g-slot" hidden><button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
+      <div class="or"><span>or</span></div></div>
       <form id="auForm">
         <label class="f">Email<input type="email" id="auEmail" required autocomplete="email" placeholder="you@example.com"></label>
         ${mode === 'password' ? `<label class="f">Password<input type="password" id="auPass" required minlength="6" autocomplete="current-password" placeholder="At least 6 characters"></label>` : ''}
@@ -41,6 +44,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
       <p class="tiny muted">By continuing you accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>`);
     const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
     s.querySelector('#auGoogle').onclick = async () => { try { await auth.signInGoogle(); } catch (e) { msg(e.message, true); } };
+    auth.googleEnabled().then((on) => { const g = s.querySelector('.g-slot'); if (g) g.hidden = !on; });
     s.querySelector('#auForm').onsubmit = async (e) => {
       e.preventDefault(); const email = s.querySelector('#auEmail').value.trim(); const go = s.querySelector('#auGo'); go.disabled = true;
       try {
@@ -55,8 +59,8 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
 
   function signUpSheet() {
     const s = sheet(`<h3>Create your account</h3><p class="muted">Or <button class="link" id="auBack" type="button">sign in</button> if you already have one.</p>
-      <button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
-      <div class="or"><span>or</span></div>
+      <div class="g-slot" hidden><button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
+      <div class="or"><span>or</span></div></div>
       <form id="auForm">
         <label class="f">Name<input id="auName" maxlength="60" placeholder="Your name or act" autocomplete="name"></label>
         <label class="f">Email<input type="email" id="auEmail" required autocomplete="email"></label>
@@ -68,6 +72,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
     const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
     s.querySelector('#auBack').onclick = () => signInSheet('password');
     s.querySelector('#auGoogle').onclick = async () => { try { await auth.signInGoogle(); } catch (e) { msg(e.message, true); } };
+    auth.googleEnabled().then((on) => { const g = s.querySelector('.g-slot'); if (g) g.hidden = !on; });
     s.querySelector('#auForm').onsubmit = async (e) => {
       e.preventDefault(); const go = s.querySelector('#auGo'); go.disabled = true;
       try {
@@ -85,10 +90,14 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
         <li><strong>Topi</strong> ${plan === 'free' ? 'guides you, 15 messages a day.' : 'guides and applies changes for you.'}</li>
         <li><strong>Exports</strong> ${plan === 'free' ? 'carry a small Topier mark.' : 'have no watermark.'}</li>
       </ul>
-      <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="/">Your projects</a><button class="btn" id="auSetup">Your setup</button><button class="btn ghost" id="auOut">Sign out</button></div>
+      <p class="tiny muted" id="auSub"></p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">${plan === 'studio' ? '' : '<button class="btn big" id="auUp">' + (plan === 'free' ? 'Upgrade' : 'Change or extend plan') + '</button>'}<a class="btn" href="/">Your projects</a><button class="btn" id="auSetup">Your setup</button><a class="btn" id="auWallet" href="/wallet" hidden>Topier wallet</a><button class="btn ghost" id="auOut">Sign out</button></div>
       <p class="tiny muted" style="margin-top:14px"><button class="link" id="auDelete" type="button" style="color:var(--bad)">Delete my account and data</button></p>`);
     s.querySelector('#auOut').onclick = async () => { await auth.signOut(); closeSheet(); toast('Signed out'); };
     s.querySelector('#auSetup').onclick = () => { closeSheet(); document.dispatchEvent(new CustomEvent('topier-open-setup')); };
+    const up = s.querySelector('#auUp'); if (up) up.onclick = () => checkout.open(ui, plan === 'free' ? 'creator' : plan);
+    auth.subscription().then((sub) => { const el = s.querySelector('#auSub'); if (el && sub && sub.paid_until) el.textContent = (Date.parse(sub.paid_until) > Date.now() ? 'Paid until ' : 'Expired on ') + new Date(sub.paid_until).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) + '. Pay again any time to extend.'; });
+    auth.isOwner().then((o) => { const w = s.querySelector('#auWallet'); if (w && o) w.hidden = false; });
     s.querySelector('#auDelete').onclick = async () => {
       if (!confirm('Delete your account and every project saved to it? Projects on this device stay here. This cannot be undone.')) return;
       try { await auth.deleteAccount(); closeSheet(); toast('Account deleted'); } catch (e) { toast(e.message, true); }

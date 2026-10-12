@@ -1,7 +1,9 @@
-// Topi: the assistant. Reads the project as data, suggests one next move, and on request applies it
-// through the editor's command list. Guide answers come from Claude via /api/topi when the server is
-// configured, with a local rule-based fallback so Topi always answers something useful.
+// Topi: the assistant. Reads the project as data, suggests one next move shaped by what this
+// person usually does, and on request applies it through the editor's command list. Questions go
+// to Claude via /api/topi, with a local rule-based fallback so Topi always answers something useful.
 import { summarize, projectDuration, trackOf } from './model.js';
+import * as H from './habits.js';
+import { lookById } from './looks.js';
 
 export const LIMITS = { free: { guide: 15, copilot: 0 }, creator: { guide: 100, copilot: 30 }, pro: { guide: 300, copilot: 1e9 }, studio: { guide: 300, copilot: 1e9 } };
 
@@ -11,23 +13,36 @@ function bump(kind) { const u = usedToday(); u[kind] = (u[kind] || 0) + 1; try {
 export function plan() { try { const p = localStorage.getItem('topier-plan'); if (p) return p; const ts = Number(localStorage.getItem('topier-trial') || 0); return ts && Date.now() - ts < 7 * 864e5 ? 'pro' : 'free'; } catch { return 'free'; } }
 export function leftToday(kind) { return Math.max(0, (LIMITS[plan()] || LIMITS.free)[kind] - (usedToday()[kind] || 0)); }
 
-// ---------- local guide: rules over the project ----------
+export const INTRO = {
+  text: 'Hi, I am Topi, your editing buddy inside Topier. I can find the best moment in a long video, write captions, pick a look, add a beat, fix the size for each app, and answer any how-to. I learn how you like to edit, so my suggestions get more like you over time, and I keep them small. Ask me anything, or tap a starter.',
+  starters: [['Make my first clip', 'How do I make my first clip from a video?'], ['Add captions', 'Add captions to my video'], ['Pick a look', 'Which look would suit this?'], ['How do I export?', 'How do I export for TikTok?']],
+};
+
+// ---------- local guide: rules over the project, shaped by the person's habits ----------
 export function suggest(project, ctx = {}) {
   const out = [];
   const v = trackOf(project, 'video'), tx = trackOf(project, 'text'), mu = trackOf(project, 'audio');
   const dur = projectDuration(project);
   const clips = v.clips, texts = tx.clips.filter((c) => c.type === 'text'), caps = tx.clips.filter((c) => c.type === 'caption');
-  if (!clips.length) return [{ id: 'first', text: 'Start by adding a video or some photos. Tap Upload, or drop files anywhere on this page.', action: { type: 'open_upload' } }];
+  const favLook = H.favourite('look'), favMusic = H.favourite('music'), favTrans = H.favourite('trans'), favText = H.favourite('text'), typical = H.typicalLength();
+  if (!clips.length) return [{ id: 'first', text: H.get().sessions > 1 ? 'Ready when you are. Drop in a video or photos and I will take it from there.' : 'Start by adding a video or some photos. Tap Upload, or drop files anywhere on this page.', action: { type: 'open_upload' } }];
+  const push = (s) => { if (!H.declined(s.id)) out.push(s); };
   const long = clips.find((c) => c.duration > 45);
-  if (long && clips.length === 1) out.push({ id: 'trim', text: `Your clip is ${Math.round(long.duration)} seconds. Short videos get watched to the end. I can cut it to the loudest 30 seconds.`, action: { type: 'best_moment', clipId: long.id, length: 30 } });
-  if (!texts.length) out.push({ id: 'name', text: 'There is no name on it yet. Add a big title so people know who this is.', action: { type: 'add_text', preset: 'title', text: ctx.name ? ctx.name.toUpperCase() : 'YOUR NAME' } });
+  const target = typical && typical < 90 ? typical : 30;
+  if (long && clips.length === 1) push({ id: 'trim', text: typical ? `Your clips usually run about ${typical} seconds. Want me to cut this one to its loudest ${target}?` : `Your clip is ${Math.round(long.duration)} seconds. Short videos get watched to the end. I can cut it to the loudest 30 seconds.`, action: { type: 'best_moment', clipId: long.id, length: target } });
+  if (!texts.length) push({ id: 'name', text: favText ? 'No title yet. Your usual style?' : 'There is no name on it yet. Add a big title so people know who this is.', action: { type: 'add_text', preset: favText || 'title', text: ctx.name ? ctx.name.toUpperCase() : 'YOUR NAME' } });
   const speech = clips.some((c) => c.type === 'video' && !c.muted && c.volume > 0);
-  if (speech && !caps.length) out.push({ id: 'captions', text: 'Most people watch with the sound off. Want captions? I can write them from the audio.', action: { type: 'add_captions' } });
-  if (!mu.clips.length && !speech) out.push({ id: 'music', text: 'It is silent. Add a beat under it, I have a few that fit.', action: { type: 'add_music', style: ctx.makes && ctx.makes.includes('music') ? 'hype' : 'chill' } });
-  if (clips.every((c) => !c.look || c.look === 'none')) out.push({ id: 'look', text: 'One tap of a look makes phone footage feel finished. Try Golden hour.', action: { type: 'apply_look', look: 'golden' } });
-  if (clips.length > 1 && clips.slice(1).every((c) => !c.transIn || c.transIn.type === 'none')) out.push({ id: 'trans', text: 'Your cuts are hard cuts. A quick dissolve between clips feels smoother.', action: { type: 'set_transitions', trans: 'dissolve' } });
-  if (dur > 90) out.push({ id: 'long', text: `At ${Math.round(dur)} seconds this is long for Reels and TikTok. Aim for under 60.`, action: null });
-  if (project.w > project.h && ctx.posts && ctx.posts.some((p) => ['instagram', 'tiktok', 'whatsapp'].includes(p))) out.push({ id: 'vertical', text: 'This is landscape, but you post on vertical apps. Switch to 9:16 and I will refit everything.', action: { type: 'resize', size: 'reels' } });
+  if (speech && !caps.length) push({ id: 'captions', text: H.used('add_captions') ? 'Captions like last time?' : 'Most people watch with the sound off. Want captions? I can write them from the audio.', action: { type: 'add_captions' } });
+  if (!mu.clips.length && !speech) push({ id: 'music', text: favMusic ? `It is silent. Your usual ${favMusic} beat?` : 'It is silent. Add a beat under it, I have a few that fit.', action: { type: 'add_music', style: favMusic || (ctx.makes && ctx.makes.includes('music') ? 'hype' : 'chill') } });
+  if (clips.every((c) => !c.look || c.look === 'none')) push({ id: 'look', text: favLook ? `You usually go with ${lookById(favLook).name}. Same here?` : 'One tap of a look makes phone footage feel finished. Try Golden hour.', action: { type: 'apply_look', look: favLook || 'golden' } });
+  if (clips.length > 1 && clips.slice(1).every((c) => !c.transIn || c.transIn.type === 'none')) push({ id: 'trans', text: favTrans ? `Add your usual ${favTrans} between clips?` : 'Your cuts are hard cuts. A quick dissolve between clips feels smoother.', action: { type: 'set_transitions', trans: favTrans || 'dissolve' } });
+  if (dur > 90) push({ id: 'long', text: `At ${Math.round(dur)} seconds this is long for Reels and TikTok. Aim for under 60.`, action: null });
+  if (project.w > project.h && ctx.posts && ctx.posts.some((p) => ['instagram', 'tiktok', 'whatsapp'].includes(p))) push({ id: 'vertical', text: 'This is landscape, but you post on vertical apps. Switch to 9:16 and I will refit everything.', action: { type: 'resize', size: 'reels' } });
+  // one small growth nudge toward something they have not tried yet, only once they are settled in
+  if (!out.length && H.get().sessions > 2) {
+    if (!H.used('add_captions') && speech) push({ id: 'try-captions', text: 'Small idea: captions tend to keep people watching longer. Want to try them once?', action: { type: 'add_captions' } });
+    else if (!H.used('set_transitions') && clips.length > 1) push({ id: 'try-trans', text: 'Small idea: a soft dissolve between scenes. Undo is one tap if you do not like it.', action: { type: 'set_transitions', trans: 'dissolve' } });
+  }
   if (!out.length) out.push({ id: 'export', text: 'Looks ready to me. Export it for the app you post on most.', action: { type: 'open_export' } });
   return out;
 }
@@ -36,10 +51,10 @@ const FAQ = [
   [/add (a )?text|title|name/i, 'Tap Text in the toolbar, pick a style, then type. Drag it on the preview to place it. Double tap to edit.'],
   [/caption|subtitle/i, 'Select a clip with speech, then Captions. Topier listens on your device and writes word by word captions you can edit.'],
   [/music|beat|song/i, 'Tap Music. Pick a generated beat or upload your own track. Music dips automatically under speech.'],
-  [/trim|cut|shorter|split/i, 'Drag the ends of a clip on the timeline to trim. Put the playhead where you want and tap Split to cut it in two.'],
+  [/trim|cut|shorter|split|first clip/i, 'Drop in your video, then I can cut it to its loudest stretch. Or drag the ends of a clip on the timeline to trim, and tap Split to cut it in two.'],
   [/look|filter|colou?r|grade/i, 'Select a clip, open Looks, tap one. The slider sets how strong it is. The same look applies at export.'],
   [/transition|dissolve|fade/i, 'Select the second clip of a pair and choose a transition in the panel. It plays across the cut.'],
-  [/export|download|save|post/i, 'Tap Export, pick the app you are posting to, and wait. The file is made on your device and never uploaded.'],
+  [/export|download|save|post|tiktok|reels/i, 'Tap Export, pick the app you are posting to, and wait. The file is made on your device and never uploaded.'],
   [/size|aspect|vertical|square|reframe/i, 'Change the canvas under Project. Clips refit; drag any clip on the preview to reposition.'],
   [/speed|slow|fast/i, 'Select a clip and set Speed in the panel. 0.5 is slow motion, 2 is double speed.'],
   [/logo|brand|watermark/i, 'Brand kit holds your logo, colours and fonts. Add it once, then one tap puts your logo on any video.'],
@@ -54,7 +69,7 @@ export async function ask(message, project, history, profile = {}) {
     let tok = null; try { const a = await import('./auth.js'); tok = await a.token(); } catch {}
     const res = await fetch('/api/topi', {
       method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { authorization: 'Bearer ' + tok } : {}) },
-      body: JSON.stringify({ message, project: summarize(project), history: history.slice(-8), profile }),
+      body: JSON.stringify({ message, project: summarize(project), history: history.slice(-8), profile, habits: H.summary(), mode: 'ask' }),
     });
     if (res.ok) { const j = await res.json(); if (j && j.reply) return { reply: j.reply, actions: j.actions || [], remote: true }; }
   } catch {}

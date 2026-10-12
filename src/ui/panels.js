@@ -6,6 +6,7 @@ import { media as mediaStore, brands, projects } from '../store.js';
 import { mediaURL } from '../media.js';
 import { uid } from '../model.js';
 import { icon } from '../icons.js';
+import * as H from '../habits.js';
 
 let app, current = 'media';
 const $ = (id) => document.getElementById(id);
@@ -20,7 +21,7 @@ export function mount(a) {
 }
 
 function render() {
-  const box = $('panel');
+  const box = $('panelBody');
   box.innerHTML = { media, text, captions, looks, music, brand, project }[current]();
   box.querySelectorAll('[data-upload]').forEach((el) => el.onclick = () => $('fileInput').click());
   wire(box);
@@ -39,7 +40,7 @@ function media() {
 
 function text() {
   return `<div class="p-title">Text</div><p class="p-sub">Tap a style to add it at the playhead, then edit on the right.</p>
-    <div class="grid2">${TEXT_PRESETS.map((t) => `<div class="tile text-tile" data-text="${t.id}" style="font-family:'${t.font}';color:${t.color};background:${t.bg && t.bg !== 'transparent' ? t.bg : '#2a2a3a'};${t.stroke ? `-webkit-text-stroke:1px ${t.stroke};` : ''}">${esc(t.text)}</div>`).join('')}</div>
+    <div class="grid2">${H.rank('text', TEXT_PRESETS).map((t) => `<div class="tile text-tile" data-text="${t.id}" style="font-family:'${t.font}';color:${t.color};background:${t.bg && t.bg !== 'transparent' ? t.bg : '#2a2a3a'};${t.stroke ? `-webkit-text-stroke:1px ${t.stroke};` : ''}">${esc(t.text)}</div>`).join('')}</div>
     ${app.brand ? `<div class="sec"><h4>Brand</h4><button class="btn sm block" data-a="brandtext">Use brand font and colour on all text</button></div>` : ''}`;
 }
 
@@ -63,7 +64,7 @@ function looks() {
   const thumb = m && m.thumb;
   const cur = target ? target.look : null;
   return `<div class="p-title">Looks</div><p class="p-sub">${target ? 'Applies to the selected clip.' : 'Applies to every video and photo. Select a clip to change just one.'}</p>
-    <div class="grid3">${LOOKS.map((l) => `<div class="tile look-tile ${cur === l.id ? 'on' : ''}" data-look="${l.id}" title="${l.name}">
+    <div class="grid3">${H.rank('look', LOOKS).map((l) => `<div class="tile look-tile ${cur === l.id ? 'on' : ''}" data-look="${l.id}" title="${l.name}">
       ${thumb ? `<img src="${thumb}" alt="" style="filter:${l.filter || 'none'}">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#f0a35a,#4a7ad0,#2b2b35);filter:${l.filter || 'none'}"></div>`}
       ${l.tint ? `<div style="position:absolute;inset:0;background:${l.tint.color};opacity:${l.tint.alpha};mix-blend-mode:${l.tint.op}"></div>` : ''}<span class="cap">${l.name}</span></div>`).join('')}</div>
     ${target ? `<div class="sec"><label class="f">Strength<span class="val">${Math.round((target.lookAmount ?? 1) * 100)}%</span><input type="range" min="0" max="1" step="0.05" value="${target.lookAmount ?? 1}" data-lookamt></label></div>` : ''}`;
@@ -74,7 +75,7 @@ function music() {
   const sel = app.selected();
   const vid = sel && sel.clip.type === 'video' ? sel.clip : trackOf(app.project, 'video').clips.find((c) => c.type === 'video');
   return `<div class="p-title">Music and sound</div><p class="p-sub">Beats are made on your device, nothing to license. Music dips under speech.</p>
-    <div class="list">${MUSIC.map((m) => `<button class="btn" data-gen="${m.style}" style="justify-content:flex-start">${icon('music', 16)} ${m.name} <span class="muted">${m.bpm} bpm</span></button>`).join('')}</div>
+    <div class="list">${H.rank('music', MUSIC, (m) => m.style).map((m) => `<button class="btn" data-gen="${m.style}" style="justify-content:flex-start">${icon('music', 16)} ${m.name} <span class="muted">${m.bpm} bpm</span></button>`).join('')}</div>
     <div class="sec"><h4>Your tracks</h4>${items.length ? `<div class="list">${items.map((m) => `<button class="btn ghost" data-addmusic="${m.id}" style="justify-content:flex-start">${icon('music', 16)} ${esc(m.name)} <span class="muted">${fmt(m.duration)}</span></button>`).join('')}</div>` : ''}<button class="btn sm block" data-upload style="margin-top:6px">Upload a track</button></div>
     ${vid ? `<div class="sec"><h4>Find the moment</h4><p class="muted" style="font-size:12px">Listens to "${esc(vid.name)}" and cuts it to the loudest part, the crowd, the drop.</p><div class="row">${[15, 30, 60].map((n) => `<button class="btn sm" data-best="${n}" data-clip="${vid.id}">${n} s</button>`).join('')}</div></div>` : ''}
     <div class="sec"><h4>Voiceover</h4><p class="muted" style="font-size:12px">Record a line over the video.</p><button class="btn sm block" data-a="rec">${icon('mic', 16)} Record from the playhead</button><div id="recStatus" class="muted" style="font-size:12px;margin-top:4px"></div></div>`;
@@ -113,9 +114,9 @@ function wire(box) {
   box.querySelectorAll('[data-add]').forEach((el) => el.onclick = (e) => { if (e.target.closest('[data-del]')) return; const m = app.getMedia(el.dataset.add); if (m) app.addToTimeline(m, { at: m.kind === 'audio' ? 0 : app.time }); });
   box.querySelectorAll('[data-del]').forEach((el) => el.onclick = async (e) => { e.stopPropagation(); const id = el.dataset.del; const used = app.project.tracks.some((t) => t.clips.some((c) => c.mediaId === id)); if (used && !confirm('This file is on the timeline. Remove it anyway?')) return; app.set('Remove media', (p) => p.tracks.forEach((t) => { t.clips = t.clips.filter((c) => c.mediaId !== id); })); await mediaStore.del(id); app.media.delete(id); render(); });
   box.querySelectorAll('[data-text]').forEach((el) => el.onclick = () => app.commands.add_text({ preset: el.dataset.text }));
-  box.querySelectorAll('[data-look]').forEach((el) => el.onclick = () => app.commands.apply_look({ look: el.dataset.look, clipId: app.selected() && app.selected().clip.type !== 'text' ? app.selection : null }));
+  box.querySelectorAll('[data-look]').forEach((el) => el.onclick = () => (app.showSheet(null), app.commands.apply_look({ look: el.dataset.look, clipId: app.selected() && app.selected().clip.type !== 'text' ? app.selection : null })));
   const amt = box.querySelector('[data-lookamt]'); if (amt) amt.oninput = () => { const f = app.selected(); if (!f) return; amt.previousElementSibling.textContent = `${Math.round(amt.value * 100)}%`; app.set('Strength', () => { f.clip.lookAmount = +amt.value; }, { merge: 'amt', silent: true }); app.player.draw(); };
-  box.querySelectorAll('[data-gen]').forEach((el) => el.onclick = () => app.commands.add_music({ style: el.dataset.gen }));
+  box.querySelectorAll('[data-gen]').forEach((el) => el.onclick = () => { app.showSheet(null); app.commands.add_music({ style: el.dataset.gen }); });
   box.querySelectorAll('[data-addmusic]').forEach((el) => el.onclick = () => app.commands.add_music({ mediaId: el.dataset.addmusic }));
   box.querySelectorAll('[data-best]').forEach((el) => el.onclick = () => app.commands.best_moment({ clipId: el.dataset.clip, length: +el.dataset.best }));
   box.querySelectorAll('[data-size]').forEach((el) => el.onclick = () => app.commands.resize({ size: el.dataset.size }));

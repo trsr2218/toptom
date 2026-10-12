@@ -4,6 +4,8 @@
 // token is verified and their daily limit comes from their plan, counted in topier_usage.
 
 const MODEL = process.env.TOPI_MODEL || 'claude-haiku-5-5';
+// When someone asks Topi for help directly on a paid plan, the stronger model does the work.
+const SMART = process.env.TOPI_MODEL_SMART || 'claude-sonnet-5-5';
 const DAILY = Number(process.env.TOPI_DAILY_PER_IP || 60);
 const PLAN_LIMITS = { free: 15, creator: 100, pro: 300, studio: 300 };
 const counts = new Map(); // best effort per instance, for anonymous callers
@@ -15,7 +17,10 @@ set_mode{mode} | open_export{} | open_upload{} | set_duration{clipId,duration} |
 const SYSTEM = `You are Topi, the assistant inside Topier, a browser video editor for artists, creators and small businesses.
 Personality: warm, short, practical, like a friend who edits. Never lecture. One suggestion at a time. Plain words. No em dashes.
 You receive the user's project as JSON (tracks, clips, times) and their profile (what they make, where they post, level).
-Answer the question or propose the single best next move for THIS project. Keep replies under 60 words.
+You also receive their habits: what they reach for most (looks, text styles, beats, transitions, export targets, typical length) and tips they turned down.
+Follow their style: prefer what they usually choose, never re-offer a declined tip, and add at most one small improvement idea, phrased lightly.
+When they ask for help, help fully: answer the real question, then give every action needed to get it done, in order.
+Keep replies under 70 words unless they ask for detail.
 If an action would help, include it in "actions" using only these commands: ${ACTIONS}
 Looks: none clean warm golden moody film kodak tealorange noir neon vintage crisp. Transitions: none fade dissolve slide-left slide-up zoom wipe blur flash.
 Text presets: title subtitle lower handle outline caption script serif marker date. Sizes: reels square portrait landscape. Music styles: chill hype amapiano cinematic.
@@ -58,19 +63,21 @@ export default async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
-  const { message = '', project = {}, history = [], profile = {} } = body || {};
+  const { message = '', project = {}, history = [], profile = {}, habits = {}, mode = '' } = body || {};
+  const paid = who && who.plan !== 'free';
+  const model = mode === 'ask' && paid ? SMART : MODEL;
   if (!message || message.length > 1000) return res.status(400).json({ error: 'Say something, under 1000 characters.' });
 
   const messages = [];
   for (const h of history.slice(-8)) if (h && (h.role === 'user' || h.role === 'assistant') && h.text) messages.push({ role: h.role, content: String(h.text).slice(0, 800) });
-  messages.push({ role: 'user', content: `Profile: ${JSON.stringify({ ...profile, plan: who ? who.plan : 'free' }).slice(0, 600)}\nProject: ${JSON.stringify(project).slice(0, 6000)}\n\nUser: ${message}` });
+  messages.push({ role: 'user', content: `Profile: ${JSON.stringify({ ...profile, plan: who ? who.plan : 'free' }).slice(0, 600)}\nHabits: ${JSON.stringify(habits).slice(0, 900)}\nProject: ${JSON.stringify(project).slice(0, 6000)}\n\nUser: ${message}` });
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: MODEL, max_tokens: 400,
+        model, max_tokens: model === SMART ? 900 : 400,
         system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
         messages,
       }),
@@ -81,7 +88,7 @@ export default async function handler(req, res) {
     let out;
     try { out = JSON.parse(text.replace(/^```json\s*|```$/g, '')); } catch { out = { reply: text, actions: [] }; }
     if (!out || typeof out.reply !== 'string') out = { reply: text || 'Try that again?', actions: [] };
-    out.actions = Array.isArray(out.actions) ? out.actions.filter((a) => a && typeof a.type === 'string').slice(0, 3) : [];
+    out.actions = Array.isArray(out.actions) ? out.actions.filter((a) => a && typeof a.type === 'string').slice(0, model === SMART ? 6 : 3) : [];
     out.reply = out.reply.replace(/—/g, ',').slice(0, 600);
     if (who) out.left = Math.max(0, PLAN_LIMITS[who.plan] - who.used);
     return res.status(200).json(out);
