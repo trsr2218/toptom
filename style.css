@@ -108,3 +108,5 @@ input[type=range] { padding: 0; accent-color: var(--accent-2); }
 .sheet .f { display: grid; gap: 4px; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .sheet .f input { width: 100%; }
 .sheet .btn.block { display: block; width: 100%; }
+
+[hidden] { display: none !important; }

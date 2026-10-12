@@ -2,6 +2,7 @@
 import * as auth from '../auth.js';
 import { icon } from '../icons.js';
 import * as checkout from './checkout.js';
+import * as W from '../wallet.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -30,21 +31,39 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
   auth.onChange(render);
   auth.init().then(() => render(auth.currentUser(), auth.currentPlan()));
 
+  // Wallet first: any wallet on Base. Email stays as a quiet fallback.
+  function walletBlock() {
+    const ws = W.wallets();
+    if (ws.length) return `<div class="list">${ws.map((w) => `<button class="btn big block wbtn" data-w="${w.id}">${w.icon ? `<img src="${w.icon}" alt="" width="22" height="22">` : ''} Continue with ${esc(w.name)}</button>`).join('')}</div>`;
+    const here = encodeURIComponent(location.href), host = location.host + location.pathname;
+    return `<p class="tiny muted">No wallet in this browser. Open Topier inside your wallet app:</p>
+      <div class="list"><a class="btn big block" href="https://go.cb-w.com/dapp?cb_url=${here}">Open in Coinbase Wallet</a><a class="btn block" href="https://metamask.app.link/dapp/${host}">Open in MetaMask</a></div>`;
+  }
+  function wireWallet(s, msg) {
+    s.querySelectorAll('[data-w]').forEach((b) => b.onclick = async () => {
+      const w = W.wallets().find((x) => x.id === b.dataset.w); if (!w) return;
+      b.disabled = true; msg('Approve the sign-in in your wallet. It is a signature only, it costs nothing.');
+      try { await auth.signInWallet(w.provider); closeSheet(); toast('Signed in with your wallet'); }
+      catch (e) { msg(W.friendlyError(e), true); } finally { b.disabled = false; }
+    });
+  }
+
   function signInSheet(mode = 'link') {
-    const s = sheet(`<h3>Sign in to Topier</h3><p class="muted">Keep your projects and your setup on every device. Free to start, no card needed.</p>
-      <div class="g-slot" hidden><button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
-      <div class="or"><span>or</span></div></div>
+    const s = sheet(`<h3>Sign in to Topier</h3><p class="muted">Use your wallet on Base. No password, no email needed. Your account is created the first time you sign in.</p>
+      ${walletBlock()}
+      <ul class="facts tiny" style="margin:12px 0"><li>You sign a short message that proves the wallet is yours.</li><li>Signing moves no funds and costs no gas.</li></ul>
+      <details class="manual" ${mode === 'password' ? 'open' : ''}><summary>Use email instead</summary>
       <form id="auForm">
         <label class="f">Email<input type="email" id="auEmail" required autocomplete="email" placeholder="you@example.com"></label>
         ${mode === 'password' ? `<label class="f">Password<input type="password" id="auPass" required minlength="6" autocomplete="current-password" placeholder="At least 6 characters"></label>` : ''}
         <button class="btn big block" id="auGo" type="submit">${mode === 'password' ? 'Sign in' : 'Email me a sign-in link'}</button>
       </form>
       <p class="tiny muted" style="margin-top:10px">${mode === 'password' ? '<button class="link" id="auLink" type="button">Use a sign-in link instead</button> · <button class="link" id="auSignup" type="button">Create an account</button>' : 'No password to remember. <button class="link" id="auPwd" type="button">Use a password instead</button>'}</p>
-      <p class="tiny muted" id="auMsg" aria-live="polite"></p>
+      </details>
+      <p class="tiny" id="auMsg" aria-live="polite"></p>
       <p class="tiny muted">By continuing you accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>`);
     const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
-    s.querySelector('#auGoogle').onclick = async () => { try { await auth.signInGoogle(); } catch (e) { msg(e.message, true); } };
-    auth.googleEnabled().then((on) => { const g = s.querySelector('.g-slot'); if (g) g.hidden = !on; });
+    wireWallet(s, msg);
     s.querySelector('#auForm').onsubmit = async (e) => {
       e.preventDefault(); const email = s.querySelector('#auEmail').value.trim(); const go = s.querySelector('#auGo'); go.disabled = true;
       try {
@@ -59,8 +78,8 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
 
   function signUpSheet() {
     const s = sheet(`<h3>Create your account</h3><p class="muted">Or <button class="link" id="auBack" type="button">sign in</button> if you already have one.</p>
-      <div class="g-slot" hidden><button class="btn google" id="auGoogle">${googleMark()} Continue with Google</button>
-      <div class="or"><span>or</span></div></div>
+      ${walletBlock()}
+      <div class="or"><span>or with email</span></div>
       <form id="auForm">
         <label class="f">Name<input id="auName" maxlength="60" placeholder="Your name or act" autocomplete="name"></label>
         <label class="f">Email<input type="email" id="auEmail" required autocomplete="email"></label>
@@ -71,8 +90,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
       <p class="tiny muted">By continuing you accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>. You must be 13 or older, 16 in the EU.</p>`);
     const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
     s.querySelector('#auBack').onclick = () => signInSheet('password');
-    s.querySelector('#auGoogle').onclick = async () => { try { await auth.signInGoogle(); } catch (e) { msg(e.message, true); } };
-    auth.googleEnabled().then((on) => { const g = s.querySelector('.g-slot'); if (g) g.hidden = !on; });
+    wireWallet(s, msg);
     s.querySelector('#auForm').onsubmit = async (e) => {
       e.preventDefault(); const go = s.querySelector('#auGo'); go.disabled = true;
       try {
@@ -84,7 +102,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
 
   function accountSheet(user, plan) {
     const s = sheet(`<h3>Your account</h3>
-      <div class="acct"><div class="avatar big">${user.avatar ? `<img src="${esc(user.avatar)}" alt="" referrerpolicy="no-referrer">` : esc(auth.initial(user))}</div><div><strong>${esc(user.name || user.email)}</strong><br><span class="muted">${esc(user.email)}</span><br><span class="chip on">${auth.planName(plan)} plan</span></div></div>
+      <div class="acct"><div class="avatar big">${user.avatar ? `<img src="${esc(user.avatar)}" alt="" referrerpolicy="no-referrer">` : esc(auth.initial(user))}</div><div><strong>${esc(user.name || user.email)}</strong><br><span class="muted ${user.wallet ? 'mono' : ''}">${esc(user.wallet || user.email)}</span><br><span class="chip on">${auth.planName(plan)} plan</span></div></div>
       <ul class="facts" style="margin:14px 0">
         <li><strong>Projects</strong> save to the cloud as you edit. Media stays on the device it was added on.</li>
         <li><strong>Topi</strong> ${plan === 'free' ? 'guides you, 15 messages a day.' : 'guides and applies changes for you.'}</li>

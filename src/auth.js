@@ -33,7 +33,9 @@ export function init() {
 }
 
 async function setSession(session) {
-  const u = session && session.user ? { id: session.user.id, email: session.user.email || '', name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '', avatar: session.user.user_metadata?.avatar_url || '' } : null;
+  const md = (session && session.user && session.user.user_metadata) || {};
+  const wallet = md.wallet || '';
+  const u = session && session.user ? { id: session.user.id, email: wallet ? '' : session.user.email || '', wallet, name: md.full_name || md.name || (wallet ? wallet.slice(0, 6) + '…' + wallet.slice(-4) : ''), avatar: md.avatar_url || '' } : null;
   const changed = (u && u.id) !== (user && user.id);
   user = u;
   if (user) {
@@ -96,6 +98,21 @@ export async function signInGoogle() {
   const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/', queryParams: { prompt: 'select_account' } } });
   if (error) throw new Error(friendly(error.message));
 }
+// Sign in with a wallet on Base: the wallet signs a one-time message, the server checks it on chain
+// and hands back a session. Signing moves nothing and costs nothing.
+export async function signInWallet(provider) {
+  if (!client) throw new Error('Accounts are not set up on this server yet.');
+  const [address] = await provider.request({ method: 'eth_requestAccounts' });
+  if (!address) throw new Error('No account was shared.');
+  const post = (body) => fetch('/api/siwe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Wallet sign-in failed.'); return j; });
+  const { message } = await post({ action: 'nonce', address });
+  const hex = '0x' + Array.from(new TextEncoder().encode(message)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const signature = await provider.request({ method: 'personal_sign', params: [hex, address] });
+  const s = await post({ action: 'verify', message, signature });
+  const { error } = await client.auth.setSession({ access_token: s.access_token, refresh_token: s.refresh_token });
+  if (error) throw new Error(friendly(error.message));
+  return s.address;
+}
 export async function signInEmail(email) {
   if (!client) throw new Error('Accounts are not set up on this server yet.');
   const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + '/', data: { app: 'topier' } } });
@@ -143,5 +160,5 @@ function friendly(m) {
   return m;
 }
 
-export const initial = (u) => ((u && (u.name || u.email)) || '?').trim().charAt(0).toUpperCase();
+export const initial = (u) => (u && u.wallet ? u.wallet.slice(2, 3).toUpperCase() : ((u && (u.name || u.email)) || '?').trim().charAt(0).toUpperCase());
 export const planName = (p) => ({ free: 'Free', creator: 'Creator', pro: 'Pro', studio: 'Studio' }[p] || 'Free');
