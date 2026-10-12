@@ -1,8 +1,7 @@
-node_modules
-_test
-brand/src
-supabase
+/node_modules
+/_test
+/brand/src
+/supabase
+/scripts
 .env*
 .claude
-*.md
-!README.md
