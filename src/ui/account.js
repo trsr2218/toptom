@@ -31,7 +31,16 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
   auth.onChange(render);
   auth.init().then(() => render(auth.currentUser(), auth.currentPlan()));
 
-  // Wallet first: any wallet on Base. Email stays as a quiet fallback.
+  // Google on top when it is switched on in Supabase, then any wallet on Base. Email stays as a quiet fallback.
+  const googleSlot = () => `<div class="g-slot" hidden><button class="btn google" id="auGoogle" type="button">${googleMark()} Continue with Google</button><div class="or"><span>or use a wallet</span></div></div>`;
+  function wireGoogle(s, msg) {
+    const g = s.querySelector('.g-slot'), lead = s.querySelector('#auLead');
+    s.querySelector('#auGoogle').onclick = async (e) => {
+      e.currentTarget.disabled = true; msg('Opening Google...');
+      try { await auth.signInGoogle(); } catch (err) { msg(err.message, true); e.currentTarget.disabled = false; }
+    };
+    auth.googleEnabled().then((on) => { if (!on || !g.isConnected) return; g.hidden = false; if (lead) lead.textContent = 'Use your Google account or your wallet on Base. No password needed. Your account is created the first time you sign in.'; });
+  }
   function walletBlock() {
     const ws = W.wallets();
     if (ws.length) return `<div class="list">${ws.map((w) => `<button class="btn big block wbtn" data-w="${w.id}">${w.icon ? `<img src="${w.icon}" alt="" width="22" height="22">` : ''} Continue with ${esc(w.name)}</button>`).join('')}</div>`;
@@ -49,7 +58,8 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
   }
 
   function signInSheet(mode = 'link') {
-    const s = sheet(`<h3>Sign in to Topier</h3><p class="muted">Use your wallet on Base. No password, no email needed. Your account is created the first time you sign in.</p>
+    const s = sheet(`<h3>Sign in to Topier</h3><p class="muted" id="auLead">Use your wallet on Base. No password, no email needed. Your account is created the first time you sign in.</p>
+      ${googleSlot()}
       ${walletBlock()}
       <ul class="facts tiny" style="margin:12px 0"><li>You sign a short message that proves the wallet is yours.</li><li>Signing moves no funds and costs no gas.</li></ul>
       <details class="manual" ${mode === 'password' ? 'open' : ''}><summary>Use email instead</summary>
@@ -63,7 +73,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
       <p class="tiny" id="auMsg" aria-live="polite"></p>
       <p class="tiny muted">By continuing you accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>`);
     const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
-    wireWallet(s, msg);
+    wireGoogle(s, msg); wireWallet(s, msg);
     s.querySelector('#auForm').onsubmit = async (e) => {
       e.preventDefault(); const email = s.querySelector('#auEmail').value.trim(); const go = s.querySelector('#auGo'); go.disabled = true;
       try {
@@ -78,6 +88,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
 
   function signUpSheet() {
     const s = sheet(`<h3>Create your account</h3><p class="muted">Or <button class="link" id="auBack" type="button">sign in</button> if you already have one.</p>
+      ${googleSlot()}
       ${walletBlock()}
       <div class="or"><span>or with email</span></div>
       <form id="auForm">
@@ -90,7 +101,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
       <p class="tiny muted">By continuing you accept the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>. You must be 13 or older, 16 in the EU.</p>`);
     const msg = (t, err) => { const m = s.querySelector('#auMsg'); m.textContent = t; m.style.color = err ? 'var(--bad)' : ''; };
     s.querySelector('#auBack').onclick = () => signInSheet('password');
-    wireWallet(s, msg);
+    wireGoogle(s, msg); wireWallet(s, msg);
     s.querySelector('#auForm').onsubmit = async (e) => {
       e.preventDefault(); const go = s.querySelector('#auGo'); go.disabled = true;
       try {
