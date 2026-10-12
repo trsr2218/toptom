@@ -14,7 +14,8 @@ export default async function handler(req, res) {
       const [b, e, code] = await Promise.all([rpc('eth_call', [{ to: USDC, data }, 'latest']), rpc('eth_getBalance', [to, 'latest']), rpc('eth_getCode', [to, 'latest'])]);
       usdc = (Number(BigInt(b)) / 1e6).toFixed(2);
       eth = (Number(BigInt(e)) / 1e18).toFixed(6);
-      isContract = code && code !== '0x';
+      // A normal wallet with an EIP-7702 delegation carries code starting 0xef0100: still a wallet its owner signs for, not a Safe.
+      isContract = !!code && code !== '0x' && !code.toLowerCase().startsWith('0xef0100');
     }
     const paid = await db('topier_orders?status=eq.paid&select=id,plan,period,amount_units,payer,tx_hash,paid_at&order=paid_at.desc&limit=200');
     const total = paid.reduce((s, o) => s + Number(o.amount_units), 0) / 1e6;
