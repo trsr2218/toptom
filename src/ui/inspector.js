@@ -1,6 +1,7 @@
 // Inspector: properties of the selected clip, or the project when nothing is selected.
 import { findClip, SIZES, clipEnd, trackOf, tidyTrack, ripple } from '../model.js';
 import { LOOKS } from '../looks.js';
+import { has } from '../plan.js';
 import { FONTS, ANIMS, TRANSITIONS, ensureFont } from '../presets.js';
 
 let app;
@@ -36,7 +37,7 @@ function mediaForm(c, track, pro) {
   const isA = c.type === 'audio';
   let h = '';
   if (!isA) {
-    h += `<div class="sec"><h4>Look</h4>${sel('look', 'Look', c.look || 'none', LOOKS)}${range('lookAmount', 'Strength', c.lookAmount ?? 1, 0, 1, 0.05, pct)}</div>`;
+    h += `<div class="sec"><h4>Look</h4>${sel('look', 'Look', c.look || 'none', LOOKS.filter((l) => !l.pro || l.id === c.look || has('pro')))}${range('lookAmount', 'Strength', c.lookAmount ?? 1, 0, 1, 0.05, pct)}</div>`;
     h += `<div class="sec"><h4>Layout</h4>${sel('fit', 'Fit', c.fit, [{ id: 'cover', name: 'Fill the frame' }, { id: 'contain', name: 'Fit inside' }, { id: 'fill', name: 'Stretch' }])}
       ${range('scale', 'Scale', c.scale, 0.1, 4, 0.01, (x) => x.toFixed(2), pro)}
       <div class="f-row">${range('x', 'Left to right', c.x, -0.5, 1.5, 0.005, pct, pro)}${range('y', 'Top to bottom', c.y, -0.5, 1.5, 0.005, pct, pro)}</div>
@@ -81,7 +82,7 @@ function projectForm() {
     ${sel('size', 'Canvas', Object.values(SIZES).find((s) => s.w === p.w && s.h === p.h)?.id || 'custom', [...Object.values(SIZES).map((s) => ({ id: s.id, name: `${s.name} (${s.label})` })), { id: 'custom', name: 'Custom' }])}
     <div class="f-row">${color('bg', 'Background', p.bg)}${sel('fps', 'Frame rate', String(p.fps), [{ id: '24', name: '24' }, { id: '30', name: '30' }, { id: '60', name: '60' }])}</div>
     ${check('watermark', 'Topier mark on export', p.watermark)}
-    <p class="muted" style="font-size:12px">The mark comes off on paid plans. Everything else is free.</p>
+    <p class="muted" style="font-size:12px">The mark comes off on paid plans.</p>
     <div class="sec"><h4>Shortcuts</h4><p class="muted" style="font-size:12px;line-height:1.8"><kbd>Space</kbd> play · <kbd>S</kbd> split · <kbd>T</kbd> text · <kbd>Del</kbd> delete · <kbd>Ctrl Z</kbd> undo · <kbd>Ctrl D</kbd> duplicate · <kbd>←</kbd><kbd>→</kbd> frame · <kbd>+</kbd><kbd>-</kbd> zoom · <kbd>Ctrl E</kbd> export</p></div>
     <div class="empty">Select a clip on the timeline or the preview to edit it.</div>`;
 }

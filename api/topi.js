@@ -8,6 +8,13 @@ const MODEL = process.env.TOPI_MODEL || 'claude-haiku-5-5';
 const SMART = process.env.TOPI_MODEL_SMART || 'claude-sonnet-5-5';
 const DAILY = Number(process.env.TOPI_DAILY_PER_IP || 60);
 const PLAN_LIMITS = { free: 15, creator: 100, pro: 300, studio: 300 };
+// Autopilot (Pro and Studio): one prompt, the whole edit.
+const AUTOPILOT = `AUTOPILOT MODE. The user wants the whole edit carried out from this one prompt, without further questions.
+Return every action needed, in the order to run them, up to 12. Use the real clip ids from the project JSON.
+Cover what they asked for first, then what a finished video still lacks (a title, a look, music if it is silent, smooth cuts), following their habits.
+Never include open_export or open_upload. If the project has no clips, return no actions and ask them to add footage.
+Premium looks you may also use here: cinema bleach pastel sunset arctic emerald super8 chrome bluehour stage.
+"reply" is one or two short sentences, past tense, saying what you did.`;
 const counts = new Map(); // best effort per instance, for anonymous callers
 
 const ACTIONS = `add_text{preset,text} | apply_look{look,clipId?} | add_captions{} | add_music{style} | best_moment{clipId,length} |
@@ -65,7 +72,9 @@ export default async function handler(req, res) {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   const { message = '', project = {}, history = [], profile = {}, habits = {}, mode = '' } = body || {};
   const paid = who && who.plan !== 'free';
-  const model = mode === 'ask' && paid ? SMART : MODEL;
+  const auto = mode === 'autopilot';
+  if (auto && !(who && (who.plan === 'pro' || who.plan === 'studio'))) return res.status(403).json({ error: 'Autopilot comes with Pro.' });
+  const model = auto || (mode === 'ask' && paid) ? SMART : MODEL;
   if (!message || message.length > 1000) return res.status(400).json({ error: 'Say something, under 1000 characters.' });
 
   const messages = [];
@@ -77,8 +86,8 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model, max_tokens: model === SMART ? 900 : 400,
-        system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+        model, max_tokens: auto ? 1500 : model === SMART ? 900 : 400,
+        system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }, ...(auto ? [{ type: 'text', text: AUTOPILOT }] : [])],
         messages,
       }),
     });
@@ -88,7 +97,7 @@ export default async function handler(req, res) {
     let out;
     try { out = JSON.parse(text.replace(/^```json\s*|```$/g, '')); } catch { out = { reply: text, actions: [] }; }
     if (!out || typeof out.reply !== 'string') out = { reply: text || 'Try that again?', actions: [] };
-    out.actions = Array.isArray(out.actions) ? out.actions.filter((a) => a && typeof a.type === 'string').slice(0, model === SMART ? 6 : 3) : [];
+    out.actions = Array.isArray(out.actions) ? out.actions.filter((a) => a && typeof a.type === 'string').slice(0, auto ? 12 : model === SMART ? 6 : 3) : [];
     out.reply = out.reply.replace(/—/g, ',').slice(0, 600);
     if (who) out.left = Math.max(0, PLAN_LIMITS[who.plan] - who.used);
     return res.status(200).json(out);

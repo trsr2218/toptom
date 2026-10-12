@@ -106,7 +106,9 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
       <ul class="facts" style="margin:14px 0">
         <li><strong>Projects</strong> save to the cloud as you edit. Media stays on the device it was added on.</li>
         <li><strong>Topi</strong> ${plan === 'free' ? 'guides you, 15 messages a day.' : 'guides and applies changes for you.'}</li>
-        <li><strong>Exports</strong> ${plan === 'free' ? 'carry a small Topier mark.' : 'have no watermark.'}</li>
+        <li><strong>Exports</strong> ${plan === 'free' ? 'carry a small Topier mark.' : plan === 'creator' ? 'have no watermark.' : 'have no watermark, and go up to 4K at the bitrate you choose.'}</li>
+        ${plan === 'pro' || plan === 'studio' ? `<li><strong>Autopilot</strong> edits a whole video from one prompt. Premium looks and ${plan === 'studio' ? 'unlimited' : '3'} brand kits are on.</li>` : ''}
+        ${plan === 'studio' ? '<li><strong>Whole-event mode</strong> is under Project in the editor. <strong>Priority help:</strong> <a href="mailto:getitdonerapid@gmail.com?subject=Topier%20Studio%20priority%20help">email us</a> and you go to the front of the queue.</li>' : ''}
       </ul>
       <p class="tiny muted" id="auSub"></p>
       <div class="row" style="gap:8px;flex-wrap:wrap">${plan === 'studio' ? '' : '<button class="btn big" id="auUp">' + (plan === 'free' ? 'Upgrade' : 'Change or extend plan') + '</button>'}<a class="btn" href="/">Your projects</a><button class="btn" id="auSetup">Your setup</button><a class="btn" id="auWallet" href="/wallet" hidden>Topier wallet</a><button class="btn ghost" id="auOut">Sign out</button></div>

@@ -1,9 +1,10 @@
 // Topi's panel: introduces itself once, then one suggestion at a time shaped by the person's
 // habits, a chat, and buttons that run editor commands. Turned-down tips stop coming back.
-import { suggest, ask, leftToday, plan, INTRO } from '../topi.js';
+import { suggest, ask, autopilot, leftToday, plan, INTRO } from '../topi.js';
+import { has, openPlans } from '../plan.js';
 import * as H from '../habits.js';
 
-let app, history = [], lastSuggestId = null, quiet = false, lastTipEl = null, calmUntil = 0;
+let app, history = [], lastSuggestId = null, quiet = false, lastTipEl = null, calmUntil = 0, auto = false;
 const phone = () => innerWidth <= 900;
 const tipsOff = () => { try { return localStorage.getItem('topier-topi-tips') === 'off'; } catch { return false; } };
 const $ = (id) => document.getElementById(id);
@@ -14,7 +15,18 @@ export function mount(a) {
   $('topiBubble').onclick = () => toggle(true);
   $('topiBtn').onclick = () => toggle();
   $('topiClose').onclick = () => toggle(false);
-  $('topiForm').onsubmit = async (e) => { e.preventDefault(); const q = $('topiInput').value.trim(); if (!q) return; $('topiInput').value = ''; await send(q); };
+  $('topiForm').onsubmit = async (e) => { e.preventDefault(); const q = $('topiInput').value.trim(); if (!q) return; $('topiInput').value = ''; await (auto ? runAuto(q) : send(q)); };
+  // Autopilot switch, above the input: on, the next message is carried out as a whole edit.
+  const bar = document.createElement('div'); bar.className = 'topi-auto';
+  bar.innerHTML = '<button type="button" class="chip" id="topiAuto" aria-pressed="false">Autopilot <span class="pro-tag inline">Pro</span></button><span class="muted" id="topiAutoNote"></span>';
+  $('topiForm').before(bar);
+  $('topiAuto').onclick = () => {
+    if (!has('pro')) { const el = add('topi', 'Autopilot edits the whole video from one prompt, like "make a 30 second reel with captions and a warm look". It comes with Pro.'); const b = document.createElement('button'); b.className = 'btn sm primary'; b.textContent = 'See Pro'; b.onclick = () => openPlans('pro'); const w = document.createElement('div'); w.className = 'acts'; w.appendChild(b); el.appendChild(w); return; }
+    auto = !auto; $('topiAuto').classList.toggle('on', auto); $('topiAuto').setAttribute('aria-pressed', String(auto));
+    $('topiAutoNote').textContent = auto ? 'Describe the video. I will edit it.' : '';
+    $('topiInput').placeholder = auto ? 'Make a 30 second reel with captions' : 'Ask Topi anything about this video';
+    if (auto && innerWidth > 900) $('topiInput').focus();
+  };
   app.on('mode', (m) => { quiet = m === 'pro'; if (!quiet && H.introSeen()) tip(); });
   let t = 0; app.on('change', () => { clearTimeout(t); t = setTimeout(() => { if (H.introSeen()) tip(); }, 1500); });
   // Tips on or off, from Topi's own header.
@@ -90,6 +102,29 @@ function add(role, text, actions = [], tipId = null) {
 
 function label(a) {
   return { add_text: 'Add the title', apply_look: 'Apply the look', add_captions: 'Write captions', add_music: 'Add a beat', best_moment: 'Cut to the best part', set_transitions: 'Add transitions', resize: 'Switch to 9:16', open_export: 'Export', open_upload: 'Upload', split_at: 'Split here', remove_clip: 'Remove it', set_speed: 'Change speed', mute_clip: 'Mute it', duck: 'Dip music under speech', set_mode: 'Switch mode', set_duration: 'Change length', add_logo: 'Add my logo', captions_from_text: 'Add captions' }[a.type] || 'Do it';
+}
+
+// Autopilot: plan the whole edit, run every step, and offer one undo for all of it.
+async function runAuto(q) {
+  add('me', q);
+  const log = $('topiLog'); const th = document.createElement('div'); th.className = 'msg bot thinking'; th.textContent = 'Topi is planning the edit...'; log.appendChild(th); log.scrollTop = log.scrollHeight;
+  const r = await autopilot(q, app.project, app.profile);
+  const steps = (r.actions || []).filter((a) => a && a.type !== 'open_export');
+  const mark = app.undo.length; let done = 0;
+  for (const a of steps) {
+    th.textContent = `Editing, step ${done + 1} of ${steps.length}: ${label(a).toLowerCase()}...`;
+    try { await app.run(a); done++; } catch (e) { console.warn('autopilot step failed', a, e); }
+  }
+  th.remove();
+  const el = add('topi', r.reply);
+  if (app.undo.length > mark) {
+    const acts = document.createElement('div'); acts.className = 'acts';
+    const un = document.createElement('button'); un.className = 'btn sm'; un.textContent = 'Undo all of it';
+    un.onclick = () => { app.undoTo(mark); el.classList.add('faded'); acts.remove(); };
+    const ex = document.createElement('button'); ex.className = 'btn sm primary'; ex.textContent = 'Export';
+    ex.onclick = () => app.run({ type: 'open_export' });
+    acts.append(ex, un); el.appendChild(acts); log.scrollTop = log.scrollHeight;
+  }
 }
 
 async function send(q) {

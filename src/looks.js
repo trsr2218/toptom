@@ -13,6 +13,17 @@ export const LOOKS = [
   { id: 'neon', name: 'Neon', filter: 'saturate(1.7) contrast(1.15) hue-rotate(8deg)', tint: { color: '#c026d3', alpha: 0.12, op: 'screen' } },
   { id: 'vintage', name: 'Vintage', filter: 'sepia(0.4) contrast(0.95) brightness(1.06) saturate(0.9)', vignette: 0.35, grain: 0.18 },
   { id: 'crisp', name: 'Crisp', filter: 'contrast(1.18) saturate(1.05) brightness(1.04)' },
+  // Premium looks, on Pro and Studio: layered grades with two tints, vignette and grain.
+  { id: 'cinema', name: 'Cinema', pro: true, filter: 'contrast(1.18) saturate(0.92) brightness(0.96)', tint: { color: '#0d4f5c', alpha: 0.2, op: 'multiply' }, tint2: { color: '#ffb070', alpha: 0.12, op: 'screen' }, vignette: 0.35, grain: 0.06 },
+  { id: 'bleach', name: 'Bleach bypass', pro: true, filter: 'saturate(0.45) contrast(1.35) brightness(1.02)', vignette: 0.2, grain: 0.1 },
+  { id: 'pastel', name: 'Pastel', pro: true, filter: 'contrast(0.9) saturate(0.85) brightness(1.1)', tint: { color: '#ffc4dd', alpha: 0.2, op: 'soft-light' }, tint2: { color: '#c9d8ff', alpha: 0.08, op: 'screen' } },
+  { id: 'sunset', name: 'Sunset', pro: true, filter: 'saturate(1.4) contrast(1.08) hue-rotate(-12deg)', tint: { color: '#ff5e3a', alpha: 0.16, op: 'soft-light' }, tint2: { color: '#7b2cff', alpha: 0.08, op: 'screen' }, vignette: 0.2 },
+  { id: 'arctic', name: 'Arctic', pro: true, filter: 'saturate(0.9) contrast(1.1) brightness(1.04) hue-rotate(6deg)', tint: { color: '#6fc3ff', alpha: 0.16, op: 'soft-light' } },
+  { id: 'emerald', name: 'Emerald', pro: true, filter: 'contrast(1.12) saturate(1.1)', tint: { color: '#0f6b4f', alpha: 0.16, op: 'multiply' }, tint2: { color: '#ffe08a', alpha: 0.08, op: 'screen' }, vignette: 0.15 },
+  { id: 'super8', name: 'Super 8', pro: true, filter: 'sepia(0.28) saturate(1.3) contrast(1.05) brightness(1.05)', tint: { color: '#ff9d5c', alpha: 0.12, op: 'overlay' }, vignette: 0.5, grain: 0.26 },
+  { id: 'chrome', name: 'Chrome', pro: true, filter: 'grayscale(1) contrast(1.1) brightness(1.08)', tint: { color: '#9fb4d6', alpha: 0.2, op: 'soft-light' }, grain: 0.05 },
+  { id: 'bluehour', name: 'Blue hour', pro: true, filter: 'brightness(0.92) contrast(1.15) saturate(1.05)', tint: { color: '#2b3f8f', alpha: 0.2, op: 'multiply' }, tint2: { color: '#ff8fb1', alpha: 0.1, op: 'screen' }, vignette: 0.3 },
+  { id: 'stage', name: 'Stage lights', pro: true, filter: 'saturate(1.5) contrast(1.22) brightness(0.98)', tint: { color: '#7B2CFF', alpha: 0.14, op: 'screen' }, tint2: { color: '#FF7A1A', alpha: 0.14, op: 'soft-light' }, vignette: 0.35 },
 ];
 export const lookById = (id) => LOOKS.find((l) => l.id === id) || LOOKS[0];
 

@@ -3,7 +3,7 @@
 // to Claude via /api/topi, with a local rule-based fallback so Topi always answers something useful.
 import { summarize, projectDuration, trackOf } from './model.js';
 import * as H from './habits.js';
-import { lookById } from './looks.js';
+import { lookById, LOOKS } from './looks.js';
 
 export const LIMITS = { free: { guide: 15, copilot: 0 }, creator: { guide: 100, copilot: 30 }, pro: { guide: 300, copilot: 1e9 }, studio: { guide: 300, copilot: 1e9 } };
 
@@ -78,6 +78,45 @@ export async function ask(message, project, history, profile = {}) {
   if (hit) return { reply: hit[1], actions: [] };
   const s = suggest(project, profile)[0];
   return { reply: `Here is what I would do next: ${s.text}`, actions: s.action ? [s.action] : [] };
+}
+
+// ---------- Autopilot (Pro and Studio): the whole edit from one prompt ----------
+// Asks Claude for the full, ordered list of commands. If the server cannot answer, a local planner
+// reads the prompt for the obvious asks and fills the rest from the same rules the tips use.
+export async function autopilot(message, project, profile = {}) {
+  try {
+    let tok = null; try { const a = await import('./auth.js'); tok = await a.token(); } catch {}
+    const res = await fetch('/api/topi', {
+      method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { authorization: 'Bearer ' + tok } : {}) },
+      body: JSON.stringify({ message, project: summarize(project), history: [], profile, habits: H.summary(), mode: 'autopilot' }),
+    });
+    const j = await res.json().catch(() => null);
+    if (res.status === 429 && j) return { reply: j.error, actions: [], limited: true };
+    if (res.ok && j && Array.isArray(j.actions) && j.actions.length) return { reply: j.reply || 'Done.', actions: j.actions, remote: true };
+  } catch {}
+  return localPlan(message, project, profile);
+}
+
+export function localPlan(message, project, profile = {}) {
+  const q = String(message || '').toLowerCase(), acts = [], did = [];
+  const v = trackOf(project, 'video'), first = v.clips.find((c) => c.type === 'video');
+  if (!v.clips.length) return { reply: 'Add a video or some photos first, then tell me what to make of them.', actions: [{ type: 'open_upload' }] };
+  const size = /square|1:1/.test(q) ? 'square' : /4:5|feed post|portrait/.test(q) ? 'portrait' : /youtube(?! short)|landscape|16:9|wide/.test(q) ? 'landscape' : /reel|tiktok|short|vertical|9:16|status|story/.test(q) ? 'reels' : null;
+  if (size) { acts.push({ type: 'resize', size }); did.push('set the size'); }
+  const secs = q.match(/(\d{1,3})\s*(?:s\b|sec|second)/);
+  if (secs && first && first.duration > +secs[1]) { acts.push({ type: 'best_moment', clipId: first.id, length: Math.max(5, Math.min(180, +secs[1])) }); did.push(`cut to the loudest ${secs[1]} seconds`); }
+  const look = LOOKS.find((l) => l.id !== 'none' && (q.includes(l.name.toLowerCase()) || q.includes(l.id)));
+  if (look) { acts.push({ type: 'apply_look', look: look.id }); did.push(`applied ${look.name}`); }
+  if (/caption|subtitle/.test(q)) { acts.push({ type: 'add_captions' }); did.push('wrote captions'); }
+  const style = ['hype', 'chill', 'amapiano', 'cinematic'].find((s) => q.includes(s));
+  if (style || /music|beat|song|sound ?track/.test(q)) { acts.push({ type: 'add_music', style: style || H.favourite('music') || 'chill' }); did.push('added a beat'); }
+  if (/transition|dissolve|smooth|fade/.test(q) && v.clips.length > 1) { acts.push({ type: 'set_transitions', trans: /fade/.test(q) ? 'fade' : 'dissolve' }); did.push('smoothed the cuts'); }
+  if (/logo|brand/.test(q)) { acts.push({ type: 'add_logo' }); did.push('added your logo'); }
+  // then whatever the project still lacks, the same way the tips would suggest it
+  const have = new Set(acts.map((a) => a.type));
+  for (const s of suggest(project, profile)) if (s.action && !['open_export', 'open_upload', 'add_captions'].includes(s.action.type) && !have.has(s.action.type)) { acts.push(s.action); have.add(s.action.type); }
+  if (!acts.length) return { reply: 'This already looks finished to me. Export it when you are ready.', actions: [] };
+  return { reply: did.length ? `Done: ${did.join(', ')}, plus the finishing touches it was missing.` : 'Done. I gave it the finishing touches it was missing.', actions: acts.slice(0, 12) };
 }
 
 export const PERSONA = 'Topi';

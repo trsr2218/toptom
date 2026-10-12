@@ -13,6 +13,19 @@ export function webCodecsAvailable() {
 }
 
 const even = (n) => Math.round(n / 2) * 2;
+const avcLevel = (W, H) => (W * H > 1920 * 1080 ? '640033' : W * H > 1280 * 720 ? '640028' : '64001f');
+
+// Can this device encode H.264 at this size? 4K needs a level most phones and some laptops lack.
+export async function canEncode(w, h, fps = 30, kbps = 8000) {
+  if (!webCodecsAvailable()) return false;
+  try { const r = await VideoEncoder.isConfigSupported({ codec: `avc1.${avcLevel(w, h)}`, width: even(w), height: even(h), bitrate: kbps * 1000, framerate: fps }); return !!r.supported; } catch { return false; }
+}
+
+// The 4K version of a preset: the short side becomes 2160, the bitrate follows the pixel count.
+export function preset4K(preset) {
+  const f = 2160 / Math.min(preset.w, preset.h);
+  return { ...preset, id: `${preset.id}-4k`, w: even(preset.w * f), h: even(preset.h * f), kbps: Math.min(60000, Math.round((preset.kbps || 8000) * 4.5)) };
+}
 
 export async function exportProject(project, preset, { getMedia, onProgress = () => {}, signal } = {}) {
   const W = even(preset.w), H = even(preset.h), fps = preset.fps || project.fps || 30;
@@ -94,9 +107,10 @@ function offlineSources(project, getMedia) {
 }
 
 async function exportWebCodecs(project, { W, H, fps, duration, kbps }, getMedia, onProgress, signal) {
-  const level = W * H > 1920 * 1080 ? '640033' : W * H > 1280 * 720 ? '640028' : '64001f';
+  const level = avcLevel(W, H);
   const vcfg = { codec: `avc1.${level}`, width: W, height: H, bitrate: kbps * 1000, framerate: fps, latencyMode: 'quality', avc: { format: 'avc' } };
   const sup = await VideoEncoder.isConfigSupported(vcfg);
+  if (!sup.supported && W * H > 1920 * 1080) throw new Error('This device cannot encode 4K. Choose Standard quality.');
   if (!sup.supported) { vcfg.codec = 'avc1.42001f'; const s2 = await VideoEncoder.isConfigSupported(vcfg); if (!s2.supported) throw new Error('This browser cannot encode H.264 video.'); }
   const sampleRate = 48000;
   const acfg = { codec: 'mp4a.40.2', sampleRate, numberOfChannels: 2, bitrate: 160000 };

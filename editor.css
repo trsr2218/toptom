@@ -299,3 +299,12 @@ kbd { background: var(--card2); border: 1px solid var(--line2); border-radius: 5
   body.sheet-open .topi-bubble { display: none; }
   .inspector .p-title [data-a=close] { display: none; }
 }
+
+/* paid features: the Pro and Studio tags, locked looks, the Autopilot switch */
+.pro-tag { position: absolute; top: 5px; right: 5px; z-index: 1; padding: 1px 6px; border-radius: 999px; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.pro-tag.inline { position: static; display: inline-block; margin-left: 6px; vertical-align: middle; }
+.look-tile.locked img, .look-tile.locked > div:first-of-type { opacity: .55; }
+.topi-auto { display: flex; align-items: center; gap: 8px; padding: 8px 10px 0; font-size: 12px; }
+.topi-auto .chip { cursor: pointer; white-space: nowrap; }
+.kits .chip { cursor: pointer; }
+.ev-row { background: var(--card2); border-radius: 12px; padding: 8px 12px; }

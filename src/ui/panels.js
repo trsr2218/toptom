@@ -7,6 +7,8 @@ import { mediaURL } from '../media.js';
 import { uid } from '../model.js';
 import { icon } from '../icons.js';
 import * as H from '../habits.js';
+import { has, kitLimit, openPlans } from '../plan.js';
+import * as eventUI from './event.js';
 
 let app, current = 'media';
 const $ = (id) => document.getElementById(id);
@@ -63,8 +65,9 @@ function looks() {
   const m = (target || v) ? app.getMedia((target || v).mediaId) : null;
   const thumb = m && m.thumb;
   const cur = target ? target.look : null;
+  const pro = has('pro');
   return `<div class="p-title">Looks</div><p class="p-sub">${target ? 'Applies to the selected clip.' : 'Applies to every video and photo. Select a clip to change just one.'}</p>
-    <div class="grid3">${H.rank('look', LOOKS).map((l) => `<div class="tile look-tile ${cur === l.id ? 'on' : ''}" data-look="${l.id}" title="${l.name}">
+    <div class="grid3">${H.rank('look', LOOKS).map((l) => `<div class="tile look-tile ${cur === l.id ? 'on' : ''} ${l.pro && !pro ? 'locked' : ''}" data-look="${l.id}" title="${l.name}${l.pro ? ', a Pro look' : ''}">${l.pro ? '<span class="pro-tag">Pro</span>' : ''}
       ${thumb ? `<img src="${thumb}" alt="" style="filter:${l.filter || 'none'}">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#f0a35a,#4a7ad0,#2b2b35);filter:${l.filter || 'none'}"></div>`}
       ${l.tint ? `<div style="position:absolute;inset:0;background:${l.tint.color};opacity:${l.tint.alpha};mix-blend-mode:${l.tint.op}"></div>` : ''}<span class="cap">${l.name}</span></div>`).join('')}</div>
     ${target ? `<div class="sec"><label class="f">Strength<span class="val">${Math.round((target.lookAmount ?? 1) * 100)}%</span><input type="range" min="0" max="1" step="0.05" value="${target.lookAmount ?? 1}" data-lookamt></label></div>` : ''}`;
@@ -84,7 +87,9 @@ function music() {
 function brand() {
   const b = app.brand;
   const logo = b && b.logoId ? app.getMedia(b.logoId) : null;
+  const kits = app.brands || [];
   return `<div class="p-title">Brand kit</div><p class="p-sub">Logo, colours and font, saved once, used on every video.</p>
+    <div class="row kits" style="flex-wrap:wrap;margin-bottom:10px">${kits.map((k, i) => `<button class="chip ${b && k.id === b.id ? 'on' : ''}" data-kit="${k.id}">${esc(k.name || k.handle || `Kit ${i + 1}`)}</button>`).join('')}<button class="chip" data-a="newkit">+ New kit</button>${b && kits.length > 1 ? '<button class="chip" data-a="delkit" style="color:var(--bad)">Remove this kit</button>' : ''}</div>
     <div class="row" style="margin-bottom:10px">${logo ? `<img src="${logo.thumb}" alt="" style="width:64px;height:64px;object-fit:contain;background:#000;border-radius:10px">` : `<div class="tile" style="width:64px;height:64px;aspect-ratio:auto">${icon('brand', 24)}</div>`}<div><button class="btn sm" data-a="logo">${logo ? 'Change logo' : 'Add logo'}</button>${logo ? `<button class="btn sm ghost" data-a="putlogo">Put it on this video</button>` : ''}</div></div>
     <label class="f">Brand colour<input type="color" data-b="color" value="${b?.color || '#FF7A1A'}"></label>
     <label class="f">Second colour<input type="color" data-b="color2" value="${b?.color2 || '#7B2CFF'}"></label>
@@ -101,6 +106,7 @@ function project() {
     <div class="list">
       <button class="btn" data-a="newfrom">Save a copy</button>
       <a class="btn" href="/clip" style="text-align:center">Make clips from a set</a>
+      <button class="btn" data-a="event">Whole-event mode <span class="pro-tag inline">Studio</span></button>
       <a class="btn ghost" href="/" style="text-align:center">All projects</a>
       <button class="btn ghost" data-a="delete" style="color:var(--bad)">Delete this project</button>
     </div>
@@ -114,7 +120,7 @@ function wire(box) {
   box.querySelectorAll('[data-add]').forEach((el) => el.onclick = (e) => { if (e.target.closest('[data-del]')) return; const m = app.getMedia(el.dataset.add); if (m) app.addToTimeline(m, { at: m.kind === 'audio' ? 0 : app.time }); });
   box.querySelectorAll('[data-del]').forEach((el) => el.onclick = async (e) => { e.stopPropagation(); const id = el.dataset.del; const used = app.project.tracks.some((t) => t.clips.some((c) => c.mediaId === id)); if (used && !confirm('This file is on the timeline. Remove it anyway?')) return; app.set('Remove media', (p) => p.tracks.forEach((t) => { t.clips = t.clips.filter((c) => c.mediaId !== id); })); await mediaStore.del(id); app.media.delete(id); render(); });
   box.querySelectorAll('[data-text]').forEach((el) => el.onclick = () => app.commands.add_text({ preset: el.dataset.text }));
-  box.querySelectorAll('[data-look]').forEach((el) => el.onclick = () => (app.showSheet(null), app.commands.apply_look({ look: el.dataset.look, clipId: app.selected() && app.selected().clip.type !== 'text' ? app.selection : null })));
+  box.querySelectorAll('[data-look]').forEach((el) => el.onclick = () => el.classList.contains('locked') ? (app.toast('That look comes with Pro.'), openPlans('pro')) : (app.showSheet(null), app.commands.apply_look({ look: el.dataset.look, clipId: app.selected() && app.selected().clip.type !== 'text' ? app.selection : null })));
   const amt = box.querySelector('[data-lookamt]'); if (amt) amt.oninput = () => { const f = app.selected(); if (!f) return; amt.previousElementSibling.textContent = `${Math.round(amt.value * 100)}%`; app.set('Strength', () => { f.clip.lookAmount = +amt.value; }, { merge: 'amt', silent: true }); app.player.draw(); };
   box.querySelectorAll('[data-gen]').forEach((el) => el.onclick = () => { app.showSheet(null); app.commands.add_music({ style: el.dataset.gen }); });
   box.querySelectorAll('[data-addmusic]').forEach((el) => el.onclick = () => app.commands.add_music({ mediaId: el.dataset.addmusic }));
@@ -130,11 +136,20 @@ function wire(box) {
   if (a('brandtext')) a('brandtext').onclick = () => app.set('Brand text', (p) => { trackOf(p, 'text').clips.forEach((c) => { if (c.type === 'text') { c.font = app.brand.font || c.font; if (c.bg && c.bg !== 'transparent') c.bg = app.brand.color; else c.color = c.color === '#ffffff' ? '#ffffff' : app.brand.color; } }); ensureFont(app.brand.font); });
   if (a('rec')) a('rec').onclick = () => record(box);
   if (a('newfrom')) a('newfrom').onclick = async () => { const p = JSON.parse(JSON.stringify(app.project)); p.id = uid(); p.name += ' copy'; p.created = Date.now(); await projects.put(p); app.toast('Copy saved. Find it on the home page.'); };
+  if (a('event')) a('event').onclick = () => eventUI.open(app);
   if (a('delete')) a('delete').onclick = async () => { if (!confirm('Delete this project? Media stays in your library.')) return; await projects.del(app.project.id); location.href = '/'; };
   // brand
-  box.querySelectorAll('[data-b]').forEach((el) => el.onchange = async () => { app.brand ??= { id: uid(), color: '#FF7A1A', color2: '#7B2CFF', font: 'Inter' }; app.brand[el.dataset.b] = el.value; await brands.put(app.brand); app.toast('Brand saved'); });
+  const kit = () => { if (!app.brand) { app.brand = { id: uid(), color: '#FF7A1A', color2: '#7B2CFF', font: 'Inter', created: Date.now() }; (app.brands ??= []).push(app.brand); app.project.brandKitId = app.brand.id; app.touch(true); } return app.brand; };
+  box.querySelectorAll('[data-b]').forEach((el) => el.onchange = async () => { kit()[el.dataset.b] = el.value; await brands.put(app.brand); app.toast('Brand saved'); if (el.dataset.b === 'name' || el.dataset.b === 'handle') render(); });
+  box.querySelectorAll('[data-kit]').forEach((el) => el.onclick = () => { const k = (app.brands || []).find((x) => x.id === el.dataset.kit); if (!k) return; app.brand = k; app.project.brandKitId = k.id; app.touch(true); render(); });
+  if (a('newkit')) a('newkit').onclick = async () => {
+    const n = (app.brands || []).length, limit = kitLimit();
+    if (n >= limit) { app.toast(limit === 1 ? 'More brand kits come with Pro: three of them, one per act or client.' : 'Pro holds three brand kits. Studio has no limit.'); return openPlans(limit === 1 ? 'pro' : 'studio'); }
+    app.brand = null; kit().name = `Kit ${n + 1}`; await brands.put(app.brand); render(); app.toast('New brand kit. Fill it in below.');
+  };
+  if (a('delkit')) a('delkit').onclick = async () => { if (!confirm('Remove this brand kit? Videos already made keep their logo and colours.')) return; await brands.del(app.brand.id); app.brands = app.brands.filter((k) => k.id !== app.brand.id); app.brand = app.brands[0] || null; app.project.brandKitId = app.brand ? app.brand.id : null; app.touch(true); render(); };
   if (a('logo')) a('logo').onclick = () => $('logoInput').click();
-  const li = box.querySelector('#logoInput'); if (li) li.onchange = async () => { const [m] = await app.importFiles(li.files); if (!m) return; m.hidden = true; await mediaStore.put(m); app.brand ??= { id: uid(), color: '#FF7A1A', color2: '#7B2CFF', font: 'Inter' }; app.brand.logoId = m.id; await brands.put(app.brand); render(); };
+  const li = box.querySelector('#logoInput'); if (li) li.onchange = async () => { const [m] = await app.importFiles(li.files); if (!m) return; m.hidden = true; await mediaStore.put(m); kit().logoId = m.id; await brands.put(app.brand); render(); };
   if (a('putlogo')) a('putlogo').onclick = () => app.commands.add_logo();
   if (a('outro')) a('outro').onclick = () => { const b = app.brand || {}; const end = projectDuration(app.project); const c = app.commands.add_text({ preset: 'title', text: (b.name || 'YOUR NAME').toUpperCase() }); app.set('Outro', () => { c.start = Math.max(0, end - 3); c.duration = 3; c.y = 0.45; c.font = b.font || 'Anton'; }); if (b.handle) { const h = app.commands.add_text({ preset: 'handle', text: b.handle }); app.set('Outro', () => { h.start = Math.max(0, end - 3); h.duration = 3; h.y = 0.56; h.bg = b.color || h.bg; }); } };
   if (a('handlepill')) a('handlepill').onclick = () => { const b = app.brand || {}; const h = app.commands.add_text({ preset: 'handle', text: b.handle || '@yourhandle' }); app.set('Handle', () => { h.start = 0; h.duration = Math.max(3, projectDuration(app.project)); h.bg = b.color || h.bg; }); };

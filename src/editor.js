@@ -18,12 +18,13 @@ import { hydrate, icon } from './icons.js';
 import * as H from './habits.js';
 import * as auth from './auth.js';
 import * as account from './ui/account.js';
+import { has } from './plan.js';
 
 const $ = (id) => document.getElementById(id);
 const listeners = new Map();
 
 export const app = {
-  project: null, media: new Map(), player: null, selection: null, mode: 'standard', profile: {}, brand: null,
+  project: null, media: new Map(), player: null, selection: null, mode: 'standard', profile: {}, brand: null, brands: [],
   undo: [], redo: [], _lastMerge: null, _dirty: false,
   $,
   on(evt, fn) { (listeners.get(evt) || listeners.set(evt, []).get(evt)).push(fn); },
@@ -52,6 +53,8 @@ export const app = {
     scheduleSave();
   },
   doUndo() { if (!app.undo.length) return; app.redo.push(snapshot(app.project)); restore(app.undo.pop()); app.toast('Undone'); },
+  // Roll back to an earlier point in one go: how an Autopilot edit is undone.
+  undoTo(n) { let k = 0; while (app.undo.length > n) { app.redo.push(snapshot(app.project)); restore(app.undo.pop()); k++; } if (k) app.toast('Autopilot edit undone'); },
   doRedo() { if (!app.redo.length) return; app.undo.push(snapshot(app.project)); restore(app.redo.pop()); },
 
   select(id) { if (app.selection === id) return; app.selection = id; app.player.selected = id; app.player.draw(); app.emit('select', id); },
@@ -125,6 +128,7 @@ export const app = {
     },
     apply_look({ look = 'golden', clipId = null, amount = 1 } = {}) {
       const l = lookById(look);
+      if (l.pro && !has('pro')) return app.toast(`${l.name} is a Pro look.`);
       app.set('Look: ' + l.name, (p) => {
         const targets = clipId ? [findClip(p, clipId)?.clip] : app.selection && findClip(p, app.selection)?.clip?.type !== 'text' ? [findClip(p, app.selection).clip] : p.tracks.flatMap((t) => t.clips.filter((c) => c.type === 'video' || c.type === 'image'));
         for (const c of targets) if (c) { c.look = l.id; c.lookAmount = amount; }
@@ -243,7 +247,7 @@ async function boot() {
   // media library
   for (const m of await mediaStore.list()) app.media.set(m.id, m);
   // brand
-  const bs = await brands.list(); app.brand = bs[0] || null;
+  app.brands = (await brands.list()).sort((a, b) => (a.created || 0) - (b.created || 0));
   // project
   let p = q.get('id') ? await projects.get(q.get('id')) : null;
   if (!p) {
@@ -254,6 +258,7 @@ async function boot() {
     history.replaceState(null, '', `/editor?id=${p.id}`);
   }
   app.project = p;
+  app.brand = app.brands.find((b) => b.id === p.brandKitId) || app.brands[0] || null;
   $('projName').value = p.name;
   document.title = `${p.name} · Topier`;
   // player
