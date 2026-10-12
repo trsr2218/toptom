@@ -58,14 +58,14 @@ export async function oneTap() {
 export async function button(host) {
   if (!(await setUp()) || !host.isConnected) return false;
   return new Promise((res) => {
-    const seen = () => { if (!host.querySelector('iframe')) return; clearTimeout(timer); obs.disconnect(); res(true); };
-    const obs = new MutationObserver(seen);
-    const timer = setTimeout(() => { obs.disconnect(); res(false); }, RENDER_TIMEOUT_MS);
-    obs.observe(host, { childList: true, subtree: true });
+    // Google refuses an origin it does not know by leaving an empty frame, so the frame has to have a size to count.
+    const seen = () => { const f = host.querySelector('iframe'); if (!f || f.offsetHeight < 20) return; clearTimeout(timer); clearInterval(poll); res(true); };
+    const poll = setInterval(seen, 200);
+    const timer = setTimeout(() => { clearInterval(poll); res(false); }, RENDER_TIMEOUT_MS);
     try {
       const width = Math.max(200, Math.min(400, Math.floor(host.getBoundingClientRect().width || 320)));
       window.google.accounts.id.renderButton(host, { type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width });
       seen();
-    } catch { clearTimeout(timer); obs.disconnect(); res(false); }
+    } catch { clearTimeout(timer); clearInterval(poll); res(false); }
   });
 }
