@@ -1,4 +1,4 @@
-// Accounts: Google one tap or an email link, on the shared Diyama Supabase project.
+// Accounts: wallet sign-in or an email link, on Supabase.
 // Without configuration Topier stays local-only and every call here is a harmless no-op.
 import { settings } from './store.js';
 

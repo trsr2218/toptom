@@ -11,3 +11,10 @@ config.local.js
 
 .vercel
 .env*
+
+# kept on this PC only, never on GitHub
+PRODUCT-SPEC.md
+README.md
+supabase/
+_test/
+scripts/
