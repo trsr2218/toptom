@@ -320,3 +320,9 @@ kbd { background: var(--card2); border: 1px solid var(--line2); border-radius: 5
   .topi-bubble { bottom: calc(var(--tl) + 122px); }
   .mode-simple .topi-bubble { bottom: 74px; }
 }
+
+/* phones: tap targets on the play row and the timeline corner */
+@media (max-width: 900px) {
+  .transport .tb-modes button { min-height: 34px; padding: 5px 10px; }
+  #addTrack { width: 34px; height: 34px; }
+}

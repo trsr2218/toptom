@@ -166,3 +166,8 @@ body { background: #fff; }
   .home-nav > a { display: none; }
   .home-top .brand img { width: 124px; height: auto; }
 }
+
+/* phones: the Topi card stays short on first visit, so the hero buttons stay in view */
+@media (max-width: 560px) {
+  .th-body ul, .th-body p + p { display: none; }
+}
