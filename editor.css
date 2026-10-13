@@ -326,3 +326,6 @@ kbd { background: var(--card2); border: 1px solid var(--line2); border-radius: 5
   .transport .tb-modes button { min-height: 34px; padding: 5px 10px; }
   #addTrack { width: 34px; height: 34px; }
 }
+
+/* the Google button has not drawn yet: its slot takes no room until it does */
+.g-host.late { min-height: 0; margin-top: 0; }

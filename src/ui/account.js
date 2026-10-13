@@ -48,14 +48,23 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
       busy: (on) => { if (!g.isConnected) return stop(); if (on) msg('Signing you in with Google...'); },
       done: () => { if (g.isConnected) closeSheet(); stop(); },
       // Google said yes and our check said no: the redirect asks Google again.
-      fail: (e) => { if (!g.isConnected) return stop(); if (!auth.googleRedirectOk()) return msg((e && e.message) || 'Google sign-in did not finish. Try again.', true); host.hidden = true; own.hidden = false; redirect(); },
+      fail: (e) => { if (!g.isConnected) return stop(); if (!auth.googleRedirectOk()) return msg((e && e.message) || 'Google sign-in did not finish. Try again.', true); host.classList.add('late'); own.hidden = false; redirect(); },
     });
     auth.googleEnabled().then(async (on) => {
       if (!on || !g.isConnected) return;
       g.hidden = false;
       if (lead) lead.textContent = 'Use your Google account or your wallet on Base. No password needed. Your account is created the first time you sign in.';
       if (G.inAppBrowser()) { host.hidden = true; s.querySelector('#auInApp').hidden = false; return; }
-      if (!(await G.button(host)) && g.isConnected) { host.hidden = true; if (auth.googleRedirectOk()) own.hidden = false; else s.querySelector('#auNoG').hidden = false; }
+      if ((await G.button(host)) || !g.isConnected) return;
+      // Not drawn in time. Show the stand-in, but keep watching: on a slow connection the Google button can still arrive.
+      const note = s.querySelector('#auNoG'), standIn = auth.googleRedirectOk() ? own : note;
+      host.classList.add('late'); standIn.hidden = false;
+      const late = setInterval(() => {
+        if (!g.isConnected) return clearInterval(late);
+        const f = host.querySelector('iframe'); if (!f || f.offsetHeight < 20) return;
+        clearInterval(late); host.classList.remove('late'); standIn.hidden = true;
+      }, 500);
+      setTimeout(() => clearInterval(late), 60000);
     });
   }
   function walletBlock() {
