@@ -2,7 +2,7 @@
 body { background: #fff; }
 .home-top { display: flex; align-items: center; justify-content: space-between; padding-top: 22px; position: relative; z-index: 2; }
 .home-nav { display: flex; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; }
-.home-nav a, .home-nav button { color: var(--muted); text-decoration: none; padding: 8px 12px; border-radius: 999px; background: none; border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+.home-nav a, .home-nav button { white-space: nowrap; color: var(--muted); text-decoration: none; padding: 8px 12px; border-radius: 999px; background: none; border: 0; font: inherit; font-weight: 600; cursor: pointer; }
 .home-nav a:hover, .home-nav button:hover { background: var(--bg2); color: var(--ink); }
 .home-nav .pill { background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
 
@@ -160,3 +160,9 @@ body { background: #fff; }
 .th-bubble .orb-topi img { width: 28px; height: 28px; }
 .th-dot { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px #fff; }
 @media (max-width: 760px) { .topi-home { right: 12px; bottom: 12px; } }
+
+/* phones: the two text links are already in the quick starts below, so the bar keeps the logo and the two buttons */
+@media (max-width: 560px) {
+  .home-nav > a { display: none; }
+  .home-top .brand img { width: 124px; height: auto; }
+}

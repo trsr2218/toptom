@@ -310,3 +310,13 @@ kbd { background: var(--card2); border: 1px solid var(--line2); border-radius: 5
 .topi-auto .chip { cursor: pointer; white-space: nowrap; }
 .kits .chip { cursor: pointer; }
 .ev-row { background: var(--card2); border-radius: 12px; padding: 8px 12px; }
+
+/* phones: the top bar fits the screen, and the Topi orb sits above the play row, not on it */
+@media (max-width: 560px) {
+  .topbar .tb-name { flex: 1 1 0; min-width: 0; width: auto; }
+  .topbar .tb-actions { flex: none; gap: 2px; }
+  .topbar .tb-topi { display: none; }
+  .topbar #exportBtn { padding: 8px 12px; }
+  .topi-bubble { bottom: calc(var(--tl) + 122px); }
+  .mode-simple .topi-bubble { bottom: 74px; }
+}

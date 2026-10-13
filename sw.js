@@ -1,6 +1,6 @@
 // Topier service worker: caches the app shell so the editor opens instantly and works offline.
 // The ffmpeg core and the caption model are cached separately by the app through the Cache API.
-const VERSION = 'topier-shell-v11';
+const VERSION = 'topier-shell-v12';
 const SHELL = [
   '/', '/index.html', '/editor', '/editor.html', '/clip', '/clip.html', '/style.css', '/home.css', '/editor.css', '/clip.js', '/manifest.webmanifest',
   '/src/home.js', '/src/editor.js', '/src/model.js', '/src/store.js', '/src/media.js', '/src/looks.js', '/src/presets.js', '/src/topi.js', '/src/captions.js', '/src/captions.worker.js',

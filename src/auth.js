@@ -82,6 +82,8 @@ export async function googleEnabled() {
 // GOOGLE_CLIENT_ID in the server environment overrides it.
 const GOOGLE_CLIENT_ID = '541798318088-t7i3uqpdihatrf3530p58qgqpuvdej4n.apps.googleusercontent.com';
 export const googleClientId = () => (sbCfg && sbCfg.googleClientId) || GOOGLE_CLIENT_ID;
+// The redirect way in only works once the client secret is in Supabase; until then it is not offered.
+export const googleRedirectOk = () => !!(sbCfg && sbCfg.googleRedirect);
 export const currentUser = () => user;
 export const currentPlan = () => plan;
 // Re-read the plan after a payment, and tell everyone listening.

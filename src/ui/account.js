@@ -36,7 +36,7 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
 
   // Google on top when it is switched on in Supabase, then any wallet on Base. Email stays as a quiet fallback.
   // Google's own button signs in on this page. If it has not drawn in a few seconds, ours takes over and goes through Supabase.
-  const googleSlot = () => `<div class="g-slot" hidden><div class="g-host"></div><button class="btn google" id="auGoogle" type="button" hidden>${googleMark()} Continue with Google</button><p class="tiny muted" id="auInApp" hidden>Google sign-in does not work inside this app's browser. Open topier.store in Chrome or Safari, or use another way below.</p><div class="or"><span>or use a wallet</span></div></div>`;
+  const googleSlot = () => `<div class="g-slot" hidden><div class="g-host"></div><button class="btn google" id="auGoogle" type="button" hidden>${googleMark()} Continue with Google</button><p class="tiny muted" id="auInApp" hidden>Google sign-in does not work inside this app's browser. Open topier.store in Chrome or Safari, or use another way below.</p><p class="tiny muted" id="auNoG" hidden>Google sign-in could not load in this browser. Reload to try again, or use another way below.</p><div class="or"><span>or use a wallet</span></div></div>`;
   function wireGoogle(s, msg) {
     const g = s.querySelector('.g-slot'), lead = s.querySelector('#auLead'), host = s.querySelector('.g-host'), own = s.querySelector('#auGoogle');
     const redirect = async () => {
@@ -48,14 +48,14 @@ export function mount(button, { sheet, closeSheet, toast = () => {}, compact = f
       busy: (on) => { if (!g.isConnected) return stop(); if (on) msg('Signing you in with Google...'); },
       done: () => { if (g.isConnected) closeSheet(); stop(); },
       // Google said yes and our check said no: the redirect asks Google again.
-      fail: () => { if (!g.isConnected) return stop(); host.hidden = true; own.hidden = false; redirect(); },
+      fail: (e) => { if (!g.isConnected) return stop(); if (!auth.googleRedirectOk()) return msg((e && e.message) || 'Google sign-in did not finish. Try again.', true); host.hidden = true; own.hidden = false; redirect(); },
     });
     auth.googleEnabled().then(async (on) => {
       if (!on || !g.isConnected) return;
       g.hidden = false;
       if (lead) lead.textContent = 'Use your Google account or your wallet on Base. No password needed. Your account is created the first time you sign in.';
       if (G.inAppBrowser()) { host.hidden = true; s.querySelector('#auInApp').hidden = false; return; }
-      if (!(await G.button(host))) { host.hidden = true; own.hidden = false; }
+      if (!(await G.button(host)) && g.isConnected) { host.hidden = true; if (auth.googleRedirectOk()) own.hidden = false; else s.querySelector('#auNoG').hidden = false; }
     });
   }
   function walletBlock() {
