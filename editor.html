@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Topier Editor</title>
+<meta name="description" content="Edit video in your browser with Topi on hand.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/editor.css">
+</head>
+<body class="mode-standard">
+<div id="splash" class="splash" aria-hidden="true"><img src="/assets/brand/topier-logo-stacked-light.svg" alt="" width="150"><div class="splash-bar"><i></i></div></div>
+
+<header class="topbar">
+  <a class="tb-brand" href="/" aria-label="Topier home"><img src="/assets/brand/topier-mark.svg" alt="" width="28" height="28"></a>
+  <input id="projName" class="tb-name" value="Untitled video" aria-label="Project name" maxlength="80">
+  <div class="tb-modes" role="tablist" aria-label="Editor mode">
+    <button data-mode="simple" role="tab">Simple</button>
+    <button data-mode="standard" role="tab" aria-selected="true">Standard</button>
+    <button data-mode="pro" role="tab">Pro</button>
+  </div>
+  <div class="tb-actions">
+    <button id="undo" class="ib" title="Undo (Ctrl+Z)" aria-label="Undo"><i data-icon="undo" data-size="18"></i></button>
+    <button id="redo" class="ib" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><i data-icon="redo" data-size="18"></i></button>
+    <span id="saved" class="tb-saved" aria-live="polite">Saved</span>
+    <button id="topiBtn" class="btn ghost tb-topi" aria-pressed="false" aria-label="Topi"><img src="/assets/brand/topier-mark.svg" alt="" width="16" height="16"><span>Topi</span></button>
+    <button id="accountBtn" class="ib" hidden aria-label="Account"></button>
+    <button id="exportBtn" class="btn primary"><i data-icon="download" data-size="16"></i>Export</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Tools">
+    <button data-panel="media" class="on"><span class="ic"><i data-icon="upload" data-size="18"></i></span>Media</button>
+    <button data-panel="text"><span class="ic"><i data-icon="text" data-size="18"></i></span>Text</button>
+    <button data-panel="captions"><span class="ic"><i data-icon="captions" data-size="18"></i></span>Captions</button>
+    <button data-panel="looks"><span class="ic"><i data-icon="looks" data-size="18"></i></span>Looks</button>
+    <button data-panel="music"><span class="ic"><i data-icon="music" data-size="18"></i></span>Music</button>
+    <button data-panel="brand"><span class="ic"><i data-icon="brand" data-size="18"></i></span>Brand</button>
+    <button data-panel="project"><span class="ic"><i data-icon="settings" data-size="18"></i></span>Project</button>
+  </nav>
+  <aside class="panel" id="panel" aria-label="Tool panel"><div class="sheet-bar"><span class="grip"></span><button class="ib" data-close-sheet aria-label="Close"><i data-icon="close" data-size="18"></i></button></div><div id="panelBody"></div></aside>
+
+  <main class="stage">
+    <div class="preview-wrap" id="previewWrap">
+      <canvas id="preview" width="540" height="960" aria-label="Video preview"></canvas>
+      <div class="simple-view" id="simpleView" hidden></div>
+    </div>
+    <div class="transport">
+      <button id="toStart" class="ib" title="Start (Home)"><i data-icon="skipBack" data-size="18"></i></button>
+      <button id="playBtn" class="ib play" title="Play (Space)" aria-label="Play"><i data-icon="play" data-size="20"></i></button>
+      <button id="toEnd" class="ib" title="End (End)"><i data-icon="skipFwd" data-size="18"></i></button>
+      <span class="tc"><span id="tcNow">0:00.0</span> / <span id="tcEnd">0:00.0</span></span>
+      <span class="spacer"></span>
+      <button id="splitBtn" class="btn ghost sm" title="Split at playhead (S)"><i data-icon="scissors" data-size="16"></i>Split</button>
+      <button id="delBtn" class="btn ghost sm" title="Delete (Del)"><i data-icon="trash" data-size="16"></i>Delete</button>
+      <button id="guidesBtn" class="ib" title="Safe area guides" aria-pressed="true"><i data-icon="guides" data-size="18"></i></button>
+      <button id="loopBtn" class="ib" title="Loop" aria-pressed="false"><i data-icon="loop" data-size="18"></i></button>
+      <button id="fitBtn" class="ib" title="Fit timeline" aria-label="Fit timeline"><i data-icon="fit" data-size="18"></i></button>
+    </div>
+  </main>
+
+  <aside class="inspector" id="inspector" aria-label="Properties"><div class="sheet-bar"><span class="grip"></span><button class="ib" data-close-sheet aria-label="Close"><i data-icon="close" data-size="18"></i></button></div><div id="inspectorBody"></div></aside>
+<div class="phone-scrim" id="phoneScrim" hidden></div>
+
+  <section class="timeline" id="timeline" aria-label="Timeline">
+    <div class="tl-head">
+      <div class="tl-corner"><button id="addTrack" class="ib" title="Add a track (Pro)"><i data-icon="plus" data-size="16"></i></button></div>
+      <div class="tl-ruler" id="ruler"></div>
+    </div>
+    <div class="tl-body" id="tlBody">
+      <div class="tl-labels" id="tlLabels"></div>
+      <div class="tl-scroll" id="tlScroll"><div class="tl-tracks" id="tlTracks"><div class="playhead" id="playhead"></div></div></div>
+    </div>
+  </section>
+</div>
+
+<div class="topi" id="topi" hidden>
+  <div class="topi-head"><img src="/assets/brand/topier-mark.svg" alt="" width="22" height="22"><strong>Topi</strong><span id="topiLeft" class="muted"></span><button class="ib" id="topiClose" aria-label="Close"><i data-icon="close" data-size="18"></i></button></div>
+  <div class="topi-log" id="topiLog"></div>
+  <form class="topi-form" id="topiForm"><input id="topiInput" placeholder="Ask Topi anything about this video" autocomplete="off" maxlength="500"><button class="btn primary sm" type="submit">Send</button></form>
+</div>
+<button class="topi-bubble" id="topiBubble" aria-label="Open Topi"><img src="/assets/brand/topier-mark.svg" alt="" width="26" height="26"><span class="dot" id="topiDot" hidden></span></button>
+
+<div class="sheet-backdrop" id="backdrop" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="dropzone" id="dropzone" hidden><div>Drop to add to your media</div></div>
+<input type="file" id="fileInput" multiple accept="video/*,image/*,audio/*,.mkv,.mov,.m4a" hidden>
+
+<script type="module" src="/src/editor.js"></script>
+</body>
+</html>

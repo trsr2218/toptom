@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<defs>
+  <radialGradient id="tile-bg" cx="0.72" cy="0.2" r="0.95">
+    <stop offset="0" stop-color="#2A1A24"/><stop offset="0.5" stop-color="#15121A"/><stop offset="1" stop-color="#0D0D10"/>
+  </radialGradient>
+</defs>
+<rect width="512" height="512" rx="112.64" ry="112.64" fill="url(#tile-bg)"/>
+<g transform="translate(71.68 71.68) scale(0.72)">
+  <defs>
+    <linearGradient id="ti-bar" gradientUnits="userSpaceOnUse" x1="71.75054117064425" y1="347.1804003669588" x2="503.99999999999994" y2="10.783900971203934">
+      <stop offset="0" stop-color="#FF5E0A"/>
+      <stop offset="0.55" stop-color="#FF7A1A"/>
+      <stop offset="1" stop-color="#FFC25A"/>
+    </linearGradient>
+    <linearGradient id="ti-wing" gradientUnits="userSpaceOnUse" x1="8" y1="215.27459981904792" x2="268.5114739506692" y2="64.86823020664292">
+      <stop offset="0" stop-color="#FF5E0A"/>
+      <stop offset="1" stop-color="#FFA23A"/>
+    </linearGradient>
+    <linearGradient id="ti-stem" gradientUnits="userSpaceOnUse" x1="225.3799044176008" y1="258.48244614089765" x2="218.93391714849776" y2="501.21609902879607">
+      <stop offset="0" stop-color="#FF7A1A"/>
+      <stop offset="0.42" stop-color="#E23C96"/>
+      <stop offset="1" stop-color="#7B2CFF"/>
+    </linearGradient>
+    <linearGradient id="ti-prong" gradientUnits="userSpaceOnUse" x1="337.1103504153874" y1="193.9748430673987" x2="334.96168799235306" y2="372.2963536467346">
+      <stop offset="0" stop-color="#FF7A1A"/>
+      <stop offset="0.5" stop-color="#E23C96"/>
+      <stop offset="1" stop-color="#7B2CFF"/>
+    </linearGradient><filter id="ti-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="17.2"/></filter></defs>
+  <g filter="url(#ti-glow)" opacity="0.5">
+    <polygon points="225.38,258.48 324.22,201.42 319.92,415.27 218.93,501.22" fill="#7B2CFF"/>
+    <polygon points="337.11,193.97 418.76,146.83 416.61,292.80 334.96,372.30" fill="#E23C96"/>
+    <polygon points="34.15,282.05 504.00,10.78 488.96,171.93 417.86,147.35 71.75,347.18" fill="#FF7A1A"/>
+    <polygon points="8.00,215.27 268.51,64.87 313.69,95.85 58.76,243.03" fill="#FF7A1A"/>
+  </g>
+  <polygon points="225.38,258.48 324.22,201.42 319.92,415.27 218.93,501.22" fill="url(#ti-stem)"/>
+  <polygon points="337.11,193.97 418.76,146.83 416.61,292.80 334.96,372.30" fill="url(#ti-prong)"/>
+  <polygon points="8.00,215.27 268.51,64.87 313.69,95.85 58.76,243.03" fill="url(#ti-wing)"/>
+  <polygon points="34.15,282.05 504.00,10.78 488.96,171.93 417.86,147.35 71.75,347.18" fill="url(#ti-bar)"/>
+  <polygon points="225.38,258.48 274.80,229.95 269.43,458.24 218.93,501.22" fill="#fff" opacity="0.14"/>
+  <polygon points="34.15,282.05 504.00,10.78 498.63,22.60 40.06,292.29" fill="#FFE2B0" opacity="0.55"/></g>
+</svg>
