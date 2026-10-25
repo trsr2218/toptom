@@ -1,5 +1,6 @@
 // Topi's panel: introduces itself once, then one suggestion at a time shaped by the person's
 // habits, a chat, and buttons that run editor commands. Turned-down tips stop coming back.
+import { openTrial } from '../trial.js';
 import { suggest, ask, autopilot, leftToday, plan, INTRO } from '../topi.js';
 import { has, openPlans } from '../plan.js';
 import * as H from '../habits.js';
@@ -18,7 +19,7 @@ export function mount(a) {
   $('topiForm').onsubmit = async (e) => { e.preventDefault(); const q = $('topiInput').value.trim(); if (!q) return; $('topiInput').value = ''; await (auto ? runAuto(q) : send(q)); };
   // Autopilot switch, above the input: on, the next message is carried out as a whole edit.
   const bar = document.createElement('div'); bar.className = 'topi-auto';
-  bar.innerHTML = '<button type="button" class="chip" id="topiAuto" aria-pressed="false">Autopilot <span class="pro-tag inline">Pro</span></button><span class="muted" id="topiAutoNote"></span>';
+  bar.innerHTML = '<button type="button" class="chip" id="topiAuto" aria-pressed="false">Autopilot <span class="pro-tag inline">' + (openTrial() ? 'Beta' : 'Pro') + '</span></button><span class="muted" id="topiAutoNote"></span>';
   $('topiForm').before(bar);
   $('topiAuto').onclick = () => {
     if (!has('pro')) { const el = add('topi', 'Autopilot edits the whole video from one prompt, like "make a 30 second reel with captions and a warm look". It comes with Pro.'); const b = document.createElement('button'); b.className = 'btn sm primary'; b.textContent = 'See Pro'; b.onclick = () => openPlans('pro'); const w = document.createElement('div'); w.className = 'acts'; w.appendChild(b); el.appendChild(w); return; }

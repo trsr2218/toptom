@@ -1,4 +1,5 @@
 // Inspector: properties of the selected clip, or the project when nothing is selected.
+import { openTrial } from '../trial.js';
 import { findClip, SIZES, clipEnd, trackOf, tidyTrack, ripple } from '../model.js';
 import { LOOKS } from '../looks.js';
 import { has } from '../plan.js';
@@ -81,8 +82,7 @@ function projectForm() {
     <label class="f">Name<input data-k="name" value="${esc(p.name)}"></label>
     ${sel('size', 'Canvas', Object.values(SIZES).find((s) => s.w === p.w && s.h === p.h)?.id || 'custom', [...Object.values(SIZES).map((s) => ({ id: s.id, name: `${s.name} (${s.label})` })), { id: 'custom', name: 'Custom' }])}
     <div class="f-row">${color('bg', 'Background', p.bg)}${sel('fps', 'Frame rate', String(p.fps), [{ id: '24', name: '24' }, { id: '30', name: '30' }, { id: '60', name: '60' }])}</div>
-    ${check('watermark', 'Topier mark on export', p.watermark)}
-    <p class="muted" style="font-size:12px">The mark comes off on paid plans.</p>
+    ${openTrial() ? '' : check('watermark', 'Topier mark on export', p.watermark)}
     <div class="sec"><h4>Shortcuts</h4><p class="muted" style="font-size:12px;line-height:1.8"><kbd>Space</kbd> play · <kbd>S</kbd> split · <kbd>T</kbd> text · <kbd>Del</kbd> delete · <kbd>Ctrl Z</kbd> undo · <kbd>Ctrl D</kbd> duplicate · <kbd>←</kbd><kbd>→</kbd> frame · <kbd>+</kbd><kbd>-</kbd> zoom · <kbd>Ctrl E</kbd> export</p></div>
     <div class="empty">Select a clip on the timeline or the preview to edit it.</div>`;
 }

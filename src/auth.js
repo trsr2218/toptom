@@ -1,5 +1,6 @@
 // Accounts: wallet sign-in or an email link, on Supabase.
 // Without configuration Topier stays local-only and every call here is a harmless no-op.
+import { NO_SERVER } from './trial.js';
 import { settings } from './store.js';
 
 let sbCfg = null, googleOn = null;
@@ -9,6 +10,7 @@ const PLAN_KEY = 'topier-plan';
 
 async function loadConfig() {
   if (window.TOPIER_CONFIG && window.TOPIER_CONFIG.supabaseUrl) return window.TOPIER_CONFIG;
+  if (NO_SERVER) return {};
   try { const r = await fetch('/api/config', { cache: 'force-cache' }); if (r.ok) return await r.json(); } catch {}
   return {};
 }

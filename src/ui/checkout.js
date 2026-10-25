@@ -23,9 +23,9 @@ async function api(body) {
 /** open({ sheet, closeSheet, toast, signIn }) */
 export async function open(ui, preselect = 'creator') {
   if (openTrial()) {
-    const s = ui.sheet(`<h3>Everything is free right now</h3>
-      <p>Every Creator, Pro and Studio feature is open to everyone until ${OPEN_UNTIL_TEXT}: no watermark, 4K export, Topi Autopilot, unlimited brand kits, premium looks and whole-event mode.</p>
-      <p class="muted">No payment, no wallet and no sign-up needed. Just open the editor and make something.</p>
+    const s = ui.sheet(`<h3>BETA TESTING MODE</h3>
+      <p><strong>Free for all until ${OPEN_UNTIL_TEXT}.</strong> Every feature is on for everyone: no watermark, 4K export, Topi Co-pilot and Autopilot, every look, unlimited brand kits and whole-event mode.</p>
+      <p class="muted">Nothing to sign up for. Your projects stay in this browser.</p>
       <button class="btn big block" id="ckOk">Start editing</button>`);
     const ok = s.querySelector('#ckOk'); if (ok) ok.onclick = () => { ui.closeSheet && ui.closeSheet(); location.href = '/editor'; };
     return;

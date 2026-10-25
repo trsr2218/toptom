@@ -4,7 +4,7 @@
 import { summarize, projectDuration, trackOf } from './model.js';
 import * as H from './habits.js';
 import { lookById, LOOKS } from './looks.js';
-import { openTrial } from './trial.js';
+import { openTrial, NO_SERVER } from './trial.js';
 
 export const LIMITS = { free: { guide: 15, copilot: 0 }, creator: { guide: 100, copilot: 30 }, pro: { guide: 300, copilot: 1e9 }, studio: { guide: 300, copilot: 1e9 } };
 
@@ -64,9 +64,9 @@ const FAQ = [
 ];
 
 export async function ask(message, project, history, profile = {}) {
-  if (leftToday('guide') <= 0) return { reply: 'Topi is resting for today. Your Guide messages reset at midnight. Upgrade for more.', actions: [], limited: true };
+  if (leftToday('guide') <= 0) return { reply: 'Topi is resting for today. Your messages reset at midnight.', actions: [], limited: true };
   bump('guide');
-  try {
+  if (!NO_SERVER) try {
     let tok = null; try { const a = await import('./auth.js'); tok = await a.token(); } catch {}
     const res = await fetch('/api/topi', {
       method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { authorization: 'Bearer ' + tok } : {}) },
@@ -85,7 +85,7 @@ export async function ask(message, project, history, profile = {}) {
 // Asks Claude for the full, ordered list of commands. If the server cannot answer, a local planner
 // reads the prompt for the obvious asks and fills the rest from the same rules the tips use.
 export async function autopilot(message, project, profile = {}) {
-  try {
+  if (!NO_SERVER) try {
     let tok = null; try { const a = await import('./auth.js'); tok = await a.token(); } catch {}
     const res = await fetch('/api/topi', {
       method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { authorization: 'Bearer ' + tok } : {}) },

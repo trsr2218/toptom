@@ -1,4 +1,5 @@
 // Left panel: Media, Text, Captions, Looks, Music, Brand, Project.
+import { openTrial } from '../trial.js';
 import { TEXT_PRESETS, FONTS, MUSIC, ensureFont } from '../presets.js';
 import { LOOKS } from '../looks.js';
 import { SIZES, trackOf, projectDuration } from '../model.js';
@@ -67,7 +68,7 @@ function looks() {
   const cur = target ? target.look : null;
   const pro = has('pro');
   return `<div class="p-title">Looks</div><p class="p-sub">${target ? 'Applies to the selected clip.' : 'Applies to every video and photo. Select a clip to change just one.'}</p>
-    <div class="grid3">${H.rank('look', LOOKS).map((l) => `<div class="tile look-tile ${cur === l.id ? 'on' : ''} ${l.pro && !pro ? 'locked' : ''}" data-look="${l.id}" title="${l.name}${l.pro ? ', a Pro look' : ''}">${l.pro ? '<span class="pro-tag">Pro</span>' : ''}
+    <div class="grid3">${H.rank('look', LOOKS).map((l) => `<div class="tile look-tile ${cur === l.id ? 'on' : ''} ${l.pro && !pro ? 'locked' : ''}" data-look="${l.id}" title="${l.name}${l.pro && !openTrial() ? ', a Pro look' : ''}">${l.pro && !openTrial() ? '<span class="pro-tag">Pro</span>' : ''}
       ${thumb ? `<img src="${thumb}" alt="" style="filter:${l.filter || 'none'}">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#f0a35a,#4a7ad0,#2b2b35);filter:${l.filter || 'none'}"></div>`}
       ${l.tint ? `<div style="position:absolute;inset:0;background:${l.tint.color};opacity:${l.tint.alpha};mix-blend-mode:${l.tint.op}"></div>` : ''}<span class="cap">${l.name}</span></div>`).join('')}</div>
     ${target ? `<div class="sec"><label class="f">Strength<span class="val">${Math.round((target.lookAmount ?? 1) * 100)}%</span><input type="range" min="0" max="1" step="0.05" value="${target.lookAmount ?? 1}" data-lookamt></label></div>` : ''}`;
@@ -106,7 +107,7 @@ function project() {
     <div class="list">
       <button class="btn" data-a="newfrom">Save a copy</button>
       <a class="btn" href="/clip" style="text-align:center">Make clips from a set</a>
-      <button class="btn" data-a="event">Whole-event mode <span class="pro-tag inline">Studio</span></button>
+      <button class="btn" data-a="event">Whole-event mode <span class="pro-tag inline">${openTrial() ? 'Beta' : 'Studio'}</span></button>
       <a class="btn ghost" href="/" style="text-align:center">All projects</a>
       <button class="btn ghost" data-a="delete" style="color:var(--bad)">Delete this project</button>
     </div>
